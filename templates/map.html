@@ -56,13 +56,6 @@
     }
 </style>
 
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="sha256-sA+4J8zYia7gGkGEXCkLBXjg5eQofEoN1A9p2Jlim0c="
-  crossorigin=""
-/>
-
 <div class="map-legend">
     <span class="map-dot entry"></span> TEXT
     <span class="map-dot photo"></span> PHOTO
@@ -73,48 +66,53 @@
     <div id="map"></div>
 </main>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-o9N1j7kGStb6g+jV+U0qYV7zKpVdGd2G3Zi+3kZ1xP8="
-        crossorigin=""></script>
+<script>
+    // 高德 JSAPI 2.0 安全配置
+    window._AMapSecurityConfig = {
+        securityJsCode: '9a6053273e69e199acb91aae8add03c9'
+    };
+</script>
+<script src="https://webapi.amap.com/maps?v=2.0&key=7432049c00644e7496cd0151d59380c9&plugin=AMap.HeatMap"></script>
 
 <script>
-    const map = L.map('map', {
-        center: [20, 0],
-        zoom: 2,
-        zoomControl: false
-    });
-
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-    const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '',
-    }).addTo(map);
-
     const markersData = JSON.parse('{{ markers|tojson|safe }}' || '[]');
 
-    function markerColor(kind) {
+    const map = new AMap.Map('map', {
+        viewMode: '3D',
+        zoom: 4,
+        center: [104.06, 30.67], // 大致中国中部
+        mapStyle: 'amap://styles/dark',
+        pitch: 45
+    });
+
+    const markerLayer = new AMap.OverlayGroup();
+    map.add(markerLayer);
+
+    function colorForKind(kind) {
         if (kind === 'photo') return '#2b00ff';
         if (kind === 'keydate') return '#ff003c';
         return '#ffffff';
     }
 
-    const markerGroup = L.layerGroup().addTo(map);
+    const heatData = [];
 
     markersData.forEach(m => {
-        const color = markerColor(m.kind);
-        const marker = L.circleMarker([m.lat, m.lng], {
-            radius: 6,
-            weight: 1,
-            color: color,
-            fillColor: color,
-            fillOpacity: 0.85
-        }).addTo(markerGroup);
+        const color = colorForKind(m.kind);
+        const pos = new AMap.LngLat(m.lng, m.lat);
 
+        const marker = new AMap.CircleMarker({
+            center: pos,
+            radius: 6,
+            strokeColor: color,
+            strokeWeight: 1,
+            fillColor: color,
+            fillOpacity: 0.85,
+            zIndex: 10
+        });
         let html = `
-            <div style="min-width:200px">
+            <div style="min-width:200px;color:#fff;">
                 <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;letter-spacing:0.14em;text-transform:uppercase;color:#aaa;margin-bottom:4px;">
-                    ${m.timestamp}
+                    ${m.timestamp || ''}
                 </div>
                 <div style="font-family:'Inter',sans-serif;font-size:0.9rem;color:#fff;margin-bottom:4px;">
                     ${m.snippet || ''}
@@ -126,18 +124,41 @@
         `;
         if (m.image) {
             html = `
-                <div style="min-width:220px">
+                <div style="min-width:220px;color:#fff;">
                     <img src="${m.image}" style="width:100%;border-radius:8px;margin-bottom:6px;" />
                     ${html}
                 </div>
             `;
         }
-        marker.bindPopup(html);
+        marker.setTitle(m.label || '');
+        marker.on('click', () => {
+            const info = new AMap.InfoWindow({
+                content: html,
+                offset: new AMap.Pixel(0, -16)
+            });
+            info.open(map, marker.getCenter());
+        });
+        markerLayer.addOverlay(marker);
+
+        heatData.push({ lng: m.lng, lat: m.lat, count: 1 });
     });
 
     if (markersData.length) {
-        const bounds = markerGroup.getBounds();
-        map.fitBounds(bounds, { padding: [40, 40] });
+        map.setFitView(markerLayer, false, [40, 40, 40, 40]);
+    }
+
+    // 回忆热力图
+    if (heatData.length) {
+        map.plugin(['AMap.HeatMap'], function () {
+            const heatmap = new AMap.HeatMap(map, {
+                radius: 25,
+                opacity: [0, 0.8],
+            });
+            heatmap.setDataSet({
+                data: heatData,
+                max: 6
+            });
+        });
     }
 </script>
 {% endblock %}

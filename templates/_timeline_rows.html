@@ -1,4 +1,4 @@
-{# timeline: 切片后的时间轴列表；start_index: 全局起始 index 用于奇偶交错布局 #}
+{# timeline: 当前页的时间轴列表；start_index: 全局起始 index，用于奇偶交错 #}
 {% set base_index = start_index or 0 %}
 
 {% for node in timeline %}
@@ -28,8 +28,8 @@
         </div>
 
         <div class="content-wrapper">
-            <div class="entry-card" data-magnetic data-magnetic-strength="0.18">
-                {# 编辑按钮 #}
+            {# 重点：不再对 entry-card 加 data-magnetic，避免“磁吸逃跑” #}
+            <div class="entry-card">
                 <button
                     type="button"
                     class="btn-edit"
@@ -45,7 +45,6 @@
                     ✎
                 </button>
 
-                {# 删除按钮 #}
                 <form
                     action="/delete/{{ node.type }}/{{ node.item.id }}"
                     method="post"
@@ -56,7 +55,12 @@
                 </form>
 
                 {% if node.type == 'entry' %}
-                    <div class="entry-body text-entry">
+                    {% set text_len = node.item.content|length %}
+                    <div
+                        class="entry-body text-entry"
+                        data-typewriter="{{ '1' if text_len <= 80 else '' }}"
+                    >
+
                         {{ node.item.content }}
                     </div>
                     {% if node.item.location %}

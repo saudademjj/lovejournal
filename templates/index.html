@@ -14,7 +14,6 @@
         overflow: hidden;
     }
 
-    /* 光标光晕 */
     .cursor-glow {
         position: fixed;
         width: 320px;
@@ -38,13 +37,19 @@
         .cursor-glow { display: none; }
     }
 
-    /* 顶部搜索 & 类型过滤 */
+    /* 顶部控制区：搜索 / 类型过滤 / 标签 */
     .timeline-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .timeline-top-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 1.5rem;
-        margin-bottom: 2rem;
     }
 
     .timeline-search {
@@ -65,17 +70,12 @@
         outline: none;
         transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
     }
-
-    .timeline-search-input::placeholder {
-        color: #666;
-    }
-
+    .timeline-search-input::placeholder { color: #666; }
     .timeline-search-input:focus {
         border-color: rgba(255,255,255,0.3);
         background: #090909;
         box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
     }
-
     .timeline-search::before {
         content: '⌕';
         position: absolute;
@@ -108,20 +108,123 @@
         opacity: 0.9;
         transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease, transform 0.25s ease;
     }
-
     .filter-pill.is-active {
         color: #ffffff;
         border-color: rgba(255,255,255,0.4);
         background: #101010;
         transform: translateY(-1px);
     }
-
     .filter-pill:hover {
         color: #ffffff;
         border-color: rgba(255,255,255,0.3);
     }
 
-    /* 时间轴 Grid & 中轴线 */
+    .tag-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        max-height: 72px;
+        overflow-y: auto;
+    }
+
+    .tag-chip {
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(10,10,10,0.9);
+        color: #a0a0a0;
+        padding: 0.25rem 0.7rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        text-transform: lowercase;
+        cursor: pointer;
+        transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease, transform 0.25s ease;
+    }
+    .tag-chip--active {
+        color: #ffffff;
+        border-color: rgba(255,255,255,0.4);
+        background: #101010;
+        transform: translateY(-1px);
+    }
+    .tag-chip:hover {
+        color: #ffffff;
+        border-color: rgba(255,255,255,0.3);
+    }
+
+    /* “那年今日”模块 */
+    .on-this-day {
+        margin-bottom: 2.2rem;
+        padding: 1.4rem 1.6rem;
+        border-radius: 18px;
+        background: radial-gradient(circle at 0% 0%, rgba(255,255,255,0.09), #050505 60%);
+        box-shadow: 0 24px 60px rgba(0,0,0,0.9);
+        border: 1px solid rgba(255,255,255,0.14);
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr);
+        gap: 1.4rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .on-this-day::before {
+        content: '';
+        position: absolute;
+        inset: -20%;
+        background:
+            radial-gradient(circle at 10% 0%, rgba(255,255,255,0.12), transparent 50%),
+            radial-gradient(circle at 100% 120%, rgba(255,255,255,0.1), transparent 60%);
+        mix-blend-mode: soft-light;
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    .otd-label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.26em;
+        text-transform: uppercase;
+        color: #cfcfcf;
+    }
+
+    .otd-date {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+        color: #a0a0a0;
+        margin-top: 0.3rem;
+    }
+
+    .otd-body {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.95rem;
+        line-height: 1.8;
+        color: #f3f3f3;
+        white-space: pre-wrap;
+    }
+
+    .otd-meta {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-end;
+        gap: 0.5rem;
+        text-align: right;
+    }
+
+    .otd-year {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 2.8rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+    }
+
+    .otd-subline {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: #b8b8b8;
+    }
+
+    /* 时间轴 Grid：>1024px 三列；<=1024px 自动折叠避免“时间重叠” */
     .timeline-grid {
         position: relative;
         display: grid;
@@ -138,7 +241,6 @@
         pointer-events: none;
         z-index: 0;
     }
-
     .timeline-axis::before {
         content: '';
         position: absolute;
@@ -153,7 +255,6 @@
         animation: axisBreath 5s ease-in-out infinite;
         transform-origin: center;
     }
-
     @keyframes axisBreath {
         0%, 100% { opacity: 0.4; transform: scaleY(1); }
         50%      { opacity: 1;   transform: scaleY(1.02); }
@@ -176,7 +277,6 @@
         align-items: center;
     }
 
-    /* 轴心圆 */
     .axis-dot {
         position: relative;
         width: 16px;
@@ -186,7 +286,6 @@
         cursor: pointer;
         transform: translateZ(0);
     }
-
     .axis-dot::after {
         content: '';
         position: absolute;
@@ -203,7 +302,6 @@
             opacity 0.3s ease;
         opacity: 0.9;
     }
-
     .axis-dot::before {
         content: '';
         position: absolute;
@@ -216,7 +314,6 @@
             box-shadow 0.35s cubic-bezier(0.19, 1, 0.22, 1),
             transform 0.35s cubic-bezier(0.19, 1, 0.22, 1);
     }
-
     .timeline-row--active .axis-dot::after {
         border-color: var(--neon-pink);
         box-shadow:
@@ -224,13 +321,11 @@
             0 0 22px rgba(255,0,60,0.9);
         transform: scale(1.2);
     }
-
     .timeline-row--active .axis-dot::before {
         background: var(--neon-pink);
         box-shadow: 0 0 18px rgba(255,0,60,0.9);
         transform: scale(0.95);
     }
-
     .timeline-row:hover .axis-dot::after {
         border-color: var(--neon-pink);
         box-shadow:
@@ -238,7 +333,6 @@
             0 0 16px rgba(255,0,60,0.65);
     }
 
-    /* 时间列 & 内容列 */
     .time-wrapper,
     .content-wrapper {
         display: flex;
@@ -254,21 +348,18 @@
         padding-right: 2rem;
         text-align: right;
     }
-
     .timeline-row.even .content-wrapper {
         grid-column: 3;
         justify-content: flex-start;
         padding-left: 2rem;
         text-align: left;
     }
-
     .timeline-row.odd .content-wrapper {
         grid-column: 1;
         justify-content: flex-end;
         padding-right: 2rem;
         text-align: right;
     }
-
     .timeline-row.odd .time-wrapper {
         grid-column: 3;
         justify-content: flex-start;
@@ -286,24 +377,20 @@
         transition: color 0.25s ease, opacity 0.25s ease, text-shadow 0.3s ease;
         opacity: 0.9;
     }
-
     .time-label span {
         opacity: 0.55;
         font-size: 0.7rem;
         margin-left: 8px;
     }
-
     .timeline-row--active .time-label {
         color: #f7f7f7;
         opacity: 1;
         text-shadow: 0 0 12px rgba(255,255,255,0.4);
     }
-
     .timeline-row--active .time-label span {
         opacity: 0.85;
     }
 
-    /* 内容块 */
     .entry-card {
         position: relative;
         display: inline-flex;
@@ -324,10 +411,7 @@
         transition: color 0.3s ease;
         white-space: pre-wrap;
     }
-
-    .timeline-row--active .entry-body {
-        color: #f3f3f3;
-    }
+    .timeline-row--active .entry-body { color: #f3f3f3; }
 
     .entry-location {
         font-family: 'JetBrains Mono', monospace;
@@ -337,10 +421,7 @@
         color: #888;
         opacity: 0.95;
     }
-
-    .timeline-row--active .entry-location {
-        color: #bfbfbf;
-    }
+    .timeline-row--active .entry-location { color: #bfbfbf; }
 
     .keydate-minimal {
         display: inline-flex;
@@ -348,10 +429,7 @@
         align-items: flex-start;
         gap: 0.12rem;
     }
-
-    .timeline-row.odd .keydate-minimal {
-        align-items: flex-end;
-    }
+    .timeline-row.odd .keydate-minimal { align-items: flex-end; }
 
     .kd-title {
         font-family: 'Inter', sans-serif;
@@ -361,10 +439,7 @@
         letter-spacing: 0.01em;
         transition: color 0.3s ease;
     }
-
-    .timeline-row--active .kd-title {
-        color: #f3f3f3;
-    }
+    .timeline-row--active .kd-title { color: #f3f3f3; }
 
     .kd-number {
         font-family: 'Space Grotesk', sans-serif;
@@ -376,7 +451,6 @@
         margin-bottom: 0.1rem;
         animation: kdBreath 6s ease-in-out infinite;
     }
-
     .kd-meta {
         font-family: 'JetBrains Mono', monospace;
         font-size: 0.7rem;
@@ -385,14 +459,10 @@
         letter-spacing: 0.2em;
         transition: color 0.3s ease;
     }
-
-    .timeline-row--active .kd-meta {
-        color: #b4b4b4;
-    }
-
+    .timeline-row--active .kd-meta { color: #b4b4b4; }
     @keyframes kdBreath {
-        0%, 100% { text-shadow: 0 0 0 rgba(255,255,255,0); }
-        50%      { text-shadow: 0 0 16px rgba(255,255,255,0.35); }
+        0%,100% { text-shadow: 0 0 0 rgba(255,255,255,0); }
+        50%     { text-shadow: 0 0 16px rgba(255,255,255,0.35); }
     }
 
     .photo-frame {
@@ -403,8 +473,8 @@
         position: relative;
         transition: border-color 0.4s ease, transform 0.6s ease;
         will-change: transform;
+        cursor: zoom-in;
     }
-
     .photo-frame::after {
         content: '';
         position: absolute;
@@ -418,7 +488,6 @@
         transform: translate3d(-6%, 4%, 0) scale(1.04);
         pointer-events: none;
     }
-
     .photo-frame img {
         display: block;
         width: 100%;
@@ -430,17 +499,14 @@
             filter 0.6s ease;
         will-change: transform, filter;
     }
-
     .timeline-row--active .photo-frame {
         border-color: rgba(255,255,255,0.22);
         transform: translate3d(0, -2px, 0);
     }
-
     .timeline-row--active .photo-frame img {
         transform: scale(1.08);
         filter: grayscale(0%) brightness(1.04) contrast(1.04);
     }
-
     .timeline-row--active .photo-frame::after {
         opacity: 1;
         transform: translate3d(4%, -3%, 0) scale(1.07);
@@ -454,7 +520,6 @@
         align-items: center;
         gap: 8px;
     }
-
     .photo-caption::before {
         content: '';
         width: 18px;
@@ -463,7 +528,6 @@
         flex-shrink: 0;
     }
 
-    /* 删除 & 编辑按钮 */
     .btn-delete,
     .btn-edit {
         position: absolute;
@@ -481,35 +545,21 @@
             transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         z-index: 20;
     }
-
     .timeline-row.even .btn-delete { right: -30px; }
     .timeline-row.odd .btn-delete { left: -30px; }
-
     .timeline-row.even .btn-edit { right: -60px; }
     .timeline-row.odd .btn-edit { left: -60px; }
-
     .entry-card:hover .btn-delete,
     .entry-card:hover .btn-edit {
         opacity: 1;
         color: #888;
     }
+    .timeline-row.even .entry-card:hover .btn-delete { transform: translateX(6px) rotate(90deg); }
+    .timeline-row.odd .entry-card:hover .btn-delete { transform: translateX(-6px) rotate(90deg); }
+    .btn-delete:hover { color: var(--neon-pink) !important; }
+    .btn-edit:hover { color: #ffffff !important; }
 
-    .timeline-row.even .entry-card:hover .btn-delete {
-        transform: translateX(6px) rotate(90deg);
-    }
-    .timeline-row.odd .entry-card:hover .btn-delete {
-        transform: translateX(-6px) rotate(90deg);
-    }
-
-    .btn-delete:hover {
-        color: var(--neon-pink) !important;
-    }
-
-    .btn-edit:hover {
-        color: #ffffff !important;
-    }
-
-    /* Dock 控制条 */
+    /* Dock */
     .dock {
         position: fixed;
         bottom: 3rem;
@@ -517,7 +567,6 @@
         transform: translateX(-50%);
         z-index: 200;
     }
-
     .dock-inner {
         background: rgba(5,5,5,0.7);
         backdrop-filter: blur(16px);
@@ -529,7 +578,6 @@
         align-items: center;
         box-shadow: 0 30px 60px rgba(0,0,0,0.9);
     }
-
     .dock-btn {
         background: none;
         border: none;
@@ -543,20 +591,17 @@
         padding: 0;
         transition: color 0.25s ease, transform 0.25s ease, text-shadow 0.25s ease;
     }
-
     .dock-btn:hover {
         color: #ffffff;
         transform: translateY(-2px);
         text-shadow: 0 0 10px rgba(255,255,255,0.5);
     }
-
     .miss-you-btn {
         color: var(--neon-pink);
         font-size: 1.2rem;
         padding: 0 0.5rem;
         opacity: 0.9;
     }
-
     .miss-you-btn:hover {
         transform: scale(1.15);
         filter: drop-shadow(0 0 9px var(--neon-pink));
@@ -573,12 +618,10 @@
         transition: opacity 0.4s ease;
         backdrop-filter: blur(8px);
     }
-
     .modal-backdrop.active {
         opacity: 1;
         pointer-events: all;
     }
-
     dialog {
         border: 1px solid #222;
         background: #050505;
@@ -599,12 +642,10 @@
         overflow-y: auto;
         z-index: 999;
     }
-
     dialog[open] {
         transform: translate(-50%, -50%) scale(1);
         opacity: 1;
     }
-
     .modal-title {
         margin: 0 0 2rem;
         font-family: 'Space Grotesk', sans-serif;
@@ -612,7 +653,6 @@
         font-size: 1.4rem;
         letter-spacing: -1px;
     }
-
     .modal-close {
         position: absolute;
         top: 1.5rem;
@@ -624,13 +664,11 @@
         cursor: pointer;
         padding: 0;
     }
-
     .modal-form-content {
         display: flex;
         flex-direction: column;
         gap: 1.3rem;
     }
-
     .modal-field {
         width: 100%;
         background: #101010;
@@ -642,17 +680,12 @@
         transition: 0.3s ease;
         box-sizing: border-box;
     }
-
-    .modal-field::placeholder {
-        color: #626262;
-    }
-
+    .modal-field::placeholder { color: #626262; }
     .modal-field:focus {
         border-color: #555;
         outline: none;
         background: #151515;
     }
-
     .modal-save-btn {
         width: 100%;
         background: #ffffff;
@@ -668,11 +701,45 @@
         border-radius: 8px;
         transition: background 0.3s ease, transform 0.25s ease, box-shadow 0.25s ease;
     }
-
     .modal-save-btn:hover {
         background: #dcdcdc;
         box-shadow: 0 16px 40px rgba(0,0,0,0.7);
         transform: translateY(-1px);
+    }
+
+    .geo-row {
+        display: flex;
+        gap: 0.4rem;
+        align-items: center;
+    }
+    .geo-row .modal-field {
+        flex: 1;
+    }
+    .geo-btn {
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: #101010;
+        color: #cccccc;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        padding: 0.55rem 0.8rem;
+        cursor: pointer;
+        transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+        white-space: nowrap;
+    }
+    .geo-btn:hover {
+        background: #181818;
+        border-color: rgba(255,255,255,0.28);
+        color: #ffffff;
+    }
+    .geo-status {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.6rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #777;
     }
 
     /* 年份电梯导航 */
@@ -687,7 +754,6 @@
         z-index: 180;
         pointer-events: auto;
     }
-
     .year-pill {
         border-radius: 999px;
         border: 1px solid rgba(255,255,255,0.08);
@@ -701,7 +767,6 @@
         cursor: pointer;
         transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
     }
-
     .year-pill--active {
         color: #ffffff;
         border-color: rgba(255,255,255,0.4);
@@ -715,6 +780,62 @@
         margin-top: 60px;
     }
 
+    /* 图片灯箱 */
+    .lightbox {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.93);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1200;
+    }
+    .lightbox--visible { display: flex; }
+    .lightbox__inner {
+        max-width: min(960px, 100vw - 3rem);
+        max-height: min(640px, 100vh - 4rem);
+        position: relative;
+    }
+    .lightbox__img {
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 12px;
+        box-shadow: 0 30px 90px rgba(0,0,0,0.9);
+        display: block;
+    }
+    .lightbox__caption {
+        margin-top: 0.8rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        color: #d0d0d0;
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+    .lightbox__close,
+    .lightbox__nav {
+        position: absolute;
+        background: none;
+        border: none;
+        color: #f0f0f0;
+        cursor: pointer;
+        padding: 0.2rem;
+        font-size: 1.6rem;
+    }
+    .lightbox__close {
+        top: -32px;
+        right: 0;
+    }
+    .lightbox__nav--prev,
+    .lightbox__nav--next {
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 2.4rem;
+        padding: 0 0.4rem;
+    }
+    .lightbox__nav--prev { left: -32px; }
+    .lightbox__nav--next { right: -32px; }
+
     @media (max-width: 1024px) {
         .year-nav {
             position: static;
@@ -723,47 +844,47 @@
             transform: none;
             margin: 0 0 1.2rem;
         }
-    }
 
-    @media (max-width: 768px) {
-        main {
-            padding: 140px 1.5rem 160px;
-        }
-
+        /* 关键：<=1024 时改为 2 列，避免桌面“时间重叠” */
         .timeline-grid {
             grid-template-columns: 26px minmax(0,1fr);
         }
-
-        .timeline-axis {
-            grid-column: 1;
-        }
-
+        .timeline-axis { grid-column: 1; }
         .timeline-row {
             grid-template-columns: 26px minmax(0,1fr);
             padding: 2rem 0;
         }
-
         .axis-cell {
             grid-column: 1;
             justify-content: flex-start;
         }
-
-        .axis-dot {
-            margin-left: 8px;
-        }
-
+        .axis-dot { margin-left: 8px; }
         .time-wrapper,
         .content-wrapper {
             grid-column: 2 !important;
             text-align: left !important;
             padding: 0 0 0 1.5rem !important;
         }
-
         .time-wrapper {
             margin-bottom: 0.4rem;
-            opacity: 0.8;
+            opacity: 0.9;
         }
+    }
 
+    @media (max-width: 768px) {
+        main {
+            padding: 140px 1.5rem 160px;
+        }
+        .timeline-top-row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .lightbox__close {
+            top: 8px;
+            right: 8px;
+        }
+        .lightbox__nav--prev { left: 4px; }
+        .lightbox__nav--next { right: 4px; }
         .btn-delete,
         .btn-edit {
             left: auto !important;
@@ -772,20 +893,13 @@
             opacity: 1;
             font-size: 1rem;
         }
-
         .dock-inner {
             padding: 0.7rem 1.6rem;
             gap: 1.6rem;
         }
-
         dialog {
             padding: 2.2rem 1.8rem;
             max-height: calc(100vh - 2rem);
-        }
-
-        .timeline-controls {
-            flex-direction: column;
-            align-items: stretch;
         }
     }
 
@@ -804,27 +918,73 @@
 
 <main aria-label="Shared timeline">
     <div class="timeline-controls">
-        <form class="timeline-search" id="timeline-search-form" method="get" action="{{ url_for('index') }}">
-            <input
-                type="text"
-                name="q"
-                class="timeline-search-input"
-                value="{{ search_query or '' }}"
-                placeholder="Search memories..."
-            >
-            {% if filter_type %}
-                <input type="hidden" name="type" value="{{ filter_type }}">
-            {% endif %}
-        </form>
+        <div class="timeline-top-row">
+            <form class="timeline-search" id="timeline-search-form" method="get" action="{{ url_for('index') }}">
+                <input
+                    type="text"
+                    name="q"
+                    class="timeline-search-input"
+                    value="{{ search_query or '' }}"
+                    placeholder="Search memories..."
+                >
+                {% if filter_type %}
+                    <input type="hidden" name="type" value="{{ filter_type }}">
+                {% endif %}
+                {% if selected_tag %}
+                    <input type="hidden" name="tag" value="{{ selected_tag }}">
+                {% endif %}
+            </form>
 
-        <div class="timeline-filters" role="tablist" aria-label="Filter by type">
-            {% set ft = (filter_type or 'all') %}
-            <button type="button" class="filter-pill {{ 'is-active' if ft == 'all' }}" data-filter="all">All</button>
-            <button type="button" class="filter-pill {{ 'is-active' if ft == 'entry' }}" data-filter="entry">Text</button>
-            <button type="button" class="filter-pill {{ 'is-active' if ft == 'photo' }}" data-filter="photo">Photo</button>
-            <button type="button" class="filter-pill {{ 'is-active' if ft == 'keydate' }}" data-filter="keydate">Date</button>
+            <div class="timeline-filters" role="tablist" aria-label="Filter by type">
+                {% set ft = (filter_type or 'all') %}
+                <button type="button" class="filter-pill {{ 'is-active' if ft == 'all' }}" data-filter="all">All</button>
+                <button type="button" class="filter-pill {{ 'is-active' if ft == 'entry' }}" data-filter="entry">Text</button>
+                <button type="button" class="filter-pill {{ 'is-active' if ft == 'photo' }}" data-filter="photo">Photo</button>
+                <button type="button" class="filter-pill {{ 'is-active' if ft == 'keydate' }}" data-filter="keydate">Date</button>
+            </div>
         </div>
+
+        {% if all_tags %}
+            <div class="tag-cloud" aria-label="Filter by tag">
+                {% for t in all_tags %}
+                    <button
+                        type="button"
+                        class="tag-chip {% if selected_tag == t %}tag-chip--active{% endif %}"
+                        data-tag="{{ t }}"
+                    >
+                        #{{ t }}
+                    </button>
+                {% endfor %}
+            </div>
+        {% endif %}
     </div>
+
+    {% if on_this_day %}
+        {% set node = on_this_day %}
+        <section class="on-this-day">
+            <div>
+                <div class="otd-label">ON THIS DAY</div>
+                <div class="otd-date">
+                    {{ node.timestamp.strftime('%Y.%m.%d') }} · {{ node.timestamp.strftime('%H:%M') }}
+                </div>
+                <div class="otd-body">
+                    {% if node.type == 'entry' %}
+                        {{ node.item.content }}
+                    {% elif node.type == 'photo' %}
+                        [Photo] {{ node.item.caption or '' }}
+                    {% elif node.type == 'keydate' %}
+                        {{ node.item.title }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="otd-meta">
+                <div class="otd-year">{{ node.timestamp.year }}</div>
+                <div class="otd-subline">
+                    A MEMORY ON THIS DAY
+                </div>
+            </div>
+        </section>
+    {% endif %}
 
     {% if years %}
     <nav class="year-nav" aria-label="Jump by year">
@@ -876,6 +1036,20 @@
     </form>
 </dialog>
 
+<!-- 图片灯箱 -->
+<div class="lightbox" id="lightbox" aria-hidden="true">
+    <div class="lightbox__inner">
+        <button class="lightbox__close" type="button" aria-label="Close">×</button>
+        <img class="lightbox__img" id="lightbox-image" alt="">
+        <div class="lightbox__caption">
+            <span id="lightbox-caption"></span>
+            <span id="lightbox-meta"></span>
+        </div>
+        <button class="lightbox__nav lightbox__nav--prev" type="button" aria-label="Previous">‹</button>
+        <button class="lightbox__nav lightbox__nav--next" type="button" aria-label="Next">›</button>
+    </div>
+</div>
+
 <script src="https://unpkg.com/@studio-freight/lenis@1.1.18/bundled/lenis.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
@@ -886,8 +1060,9 @@
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let lenisInstance = null;
+    const selectedTag = "{{ selected_tag or '' }}";
 
-    /* 1. Cursor glow */
+    /* Cursor glow */
     const cursorGlow = document.getElementById('cursor-glow');
     let mouseX = window.innerWidth / 2;
     let mouseY = window.innerHeight / 2;
@@ -909,7 +1084,7 @@
         })();
     }
 
-    /* 2. Hearts Canvas */
+    /* Hearts canvas */
     const canvas = document.getElementById('hearts-canvas');
     const ctx = canvas.getContext('2d');
     let hearts = [];
@@ -925,7 +1100,6 @@
     function triggerHearts() {
         const originX = window.innerWidth / 2;
         const originY = window.innerHeight - 80;
-
         for (let i = 0; i < 26; i++) {
             hearts.push({
                 x: originX,
@@ -937,7 +1111,6 @@
                 rotation: Math.random() * 360
             });
         }
-
         if (!isAnimatingHearts) {
             isAnimatingHearts = true;
             animateHearts();
@@ -971,7 +1144,7 @@
         requestAnimationFrame(animateHearts);
     }
 
-    /* 3. Modal (create & edit) */
+    /* Modal + geocode */
     const modal = document.getElementById('input-modal');
     const backdrop = document.getElementById('modal-backdrop');
     const dateInput = document.getElementById('date-input');
@@ -986,9 +1159,52 @@
         dateInput.value = now.toISOString().slice(0, 16);
     }
 
+    function setupGeoHelper(scope) {
+        const container = scope || document;
+        const geoBtn = container.querySelector('.geo-btn');
+        const locInput = container.querySelector('input[name="location"]');
+        const coordsInput = container.querySelector('input[name="location_coords"]');
+        const statusEl = container.querySelector('.geo-status');
+        if (!geoBtn || !locInput || !coordsInput) return;
+
+        geoBtn.addEventListener('click', async () => {
+            const query = (locInput.value || '').trim();
+            if (!query) {
+                if (statusEl) statusEl.textContent = '输入地点';
+                return;
+            }
+            if (statusEl) statusEl.textContent = 'Searching...';
+
+            try {
+                const url = 'https://restapi.amap.com/v3/geocode/geo?key=fd67dbc2f43a792a5a2aa190e3a49d92&address=' + encodeURIComponent(query);
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data.status !== '1' || !data.geocodes || !data.geocodes.length) {
+                    if (statusEl) statusEl.textContent = '未找到';
+                    return;
+                }
+                const loc = data.geocodes[0].location; // "lng,lat"
+                const parts = loc.split(',');
+                if (parts.length !== 2) {
+                    if (statusEl) statusEl.textContent = '坐标错误';
+                    return;
+                }
+                const lng = parseFloat(parts[0]);
+                const lat = parseFloat(parts[1]);
+                if (isNaN(lat) || isNaN(lng)) {
+                    if (statusEl) statusEl.textContent = '坐标错误';
+                    return;
+                }
+                coordsInput.value = lat.toFixed(6) + ',' + lng.toFixed(6);
+                if (statusEl) statusEl.textContent = '已匹配';
+            } catch (e) {
+                if (statusEl) statusEl.textContent = '网络错误';
+            }
+        });
+    }
+
     function openModal(type) {
         if (!modal) return;
-
         syncNowToDateInput();
         fields.innerHTML = '';
         form.action = '';
@@ -1007,17 +1223,22 @@
                     name="content"
                     rows="5"
                     class="modal-field"
-                    placeholder="."
+                    placeholder="..."
                     style="resize:vertical;"
                     required
                 ></textarea>
-                <input
-                    name="location"
-                    placeholder="Where (optional)"
-                    class="modal-field"
-                    style="margin-top:0.4rem;"
-                >
+                <div class="geo-row">
+                    <input
+                        name="location"
+                        placeholder="Where (optional)"
+                        class="modal-field"
+                    >
+                    <button type="button" class="geo-btn">AUTO</button>
+                </div>
+                <div class="geo-status"></div>
+                <input type="hidden" name="location_coords">
             `;
+            setupGeoHelper(fields);
         } else if (type === 'keydate') {
             form.action = "{{ url_for('add_keydate') }}";
             titleEl.innerText = 'MEMORY';
@@ -1029,13 +1250,18 @@
                     required
                 >
                 <input type="hidden" name="date" id="kd-hidden">
-                <input
-                    name="location"
-                    placeholder="Where (optional)"
-                    class="modal-field"
-                    style="margin-top:0.4rem;"
-                >
+                <div class="geo-row">
+                    <input
+                        name="location"
+                        placeholder="Where (optional)"
+                        class="modal-field"
+                    >
+                    <button type="button" class="geo-btn">AUTO</button>
+                </div>
+                <div class="geo-status"></div>
+                <input type="hidden" name="location_coords">
             `;
+            setupGeoHelper(fields);
             form.onsubmit = function () {
                 const hidden = document.getElementById('kd-hidden');
                 if (hidden && dateInput) hidden.value = dateInput.value;
@@ -1057,13 +1283,18 @@
                     class="modal-field"
                     style="margin-top:6px"
                 >
-                <input
-                    name="location"
-                    placeholder="Where (optional)"
-                    class="modal-field"
-                    style="margin-top:0.4rem;"
-                >
+                <div class="geo-row">
+                    <input
+                        name="location"
+                        placeholder="Where (optional)"
+                        class="modal-field"
+                    >
+                    <button type="button" class="geo-btn">AUTO</button>
+                </div>
+                <div class="geo-status"></div>
+                <input type="hidden" name="location_coords">
             `;
+            setupGeoHelper(fields);
         }
     }
     window.openModal = openModal;
@@ -1102,17 +1333,22 @@
                     style="resize:vertical;"
                     required
                 ></textarea>
-                <input
-                    name="location"
-                    placeholder="Where (optional)"
-                    class="modal-field"
-                    style="margin-top:0.4rem;"
-                >
+                <div class="geo-row">
+                    <input
+                        name="location"
+                        placeholder="Where (optional)"
+                        class="modal-field"
+                    >
+                    <button type="button" class="geo-btn">AUTO</button>
+                </div>
+                <div class="geo-status"></div>
+                <input type="hidden" name="location_coords">
             `;
             const textarea = fields.querySelector('textarea[name="content"]');
             const locInput = fields.querySelector('input[name="location"]');
             textarea.value = button.dataset.editContent || '';
             locInput.value = location || '';
+            setupGeoHelper(fields);
         } else if (type === 'keydate') {
             fields.innerHTML = `
                 <input
@@ -1121,12 +1357,16 @@
                     required
                 >
                 <input type="hidden" name="date" id="kd-hidden">
-                <input
-                    name="location"
-                    placeholder="Where (optional)"
-                    class="modal-field"
-                    style="margin-top:0.4rem;"
-                >
+                <div class="geo-row">
+                    <input
+                        name="location"
+                        placeholder="Where (optional)"
+                        class="modal-field"
+                    >
+                    <button type="button" class="geo-btn">AUTO</button>
+                </div>
+                <div class="geo-status"></div>
+                <input type="hidden" name="location_coords">
             `;
             const titleInput = fields.querySelector('input[name="title"]');
             const locInput = fields.querySelector('input[name="location"]');
@@ -1134,11 +1374,11 @@
             titleInput.value = button.dataset.editTitle || '';
             locInput.value = location || '';
             if (hidden && dateInput) hidden.value = dateInput.value;
-
             form.onsubmit = function () {
                 const hidden = document.getElementById('kd-hidden');
                 if (hidden && dateInput) hidden.value = dateInput.value;
             };
+            setupGeoHelper(fields);
         } else if (type === 'photo') {
             fields.innerHTML = `
                 <input
@@ -1153,17 +1393,22 @@
                     class="modal-field"
                     style="margin-top:6px"
                 >
-                <input
-                    name="location"
-                    placeholder="Where (optional)"
-                    class="modal-field"
-                    style="margin-top:0.4rem;"
-                >
+                <div class="geo-row">
+                    <input
+                        name="location"
+                        placeholder="Where (optional)"
+                        class="modal-field"
+                    >
+                    <button type="button" class="geo-btn">AUTO</button>
+                </div>
+                <div class="geo-status"></div>
+                <input type="hidden" name="location_coords">
             `;
             const captionInput = fields.querySelector('input[name="caption"]');
             const locInput = fields.querySelector('input[name="location"]');
             captionInput.value = button.dataset.editCaption || '';
             locInput.value = location || '';
+            setupGeoHelper(fields);
         }
     }
 
@@ -1178,7 +1423,7 @@
 
     if (backdrop) backdrop.addEventListener('click', closeModal);
 
-    /* 4. Lenis 平滑滚动 */
+    /* Lenis smooth scroll */
     if (!prefersReducedMotion && typeof Lenis !== 'undefined') {
         const lenis = new Lenis({
             lerp: 0.12,
@@ -1187,7 +1432,6 @@
             wheelMultiplier: 1.1
         });
         lenisInstance = lenis;
-
         function raf(time) {
             lenis.raf(time);
             requestAnimationFrame(raf);
@@ -1195,10 +1439,9 @@
         requestAnimationFrame(raf);
     }
 
-    /* 5. GSAP Reveal & 视差 */
+    /* GSAP timeline reveal + typewriter + 照片视差 */
     function enhanceTimelineRows(root) {
         const scope = root || document;
-
         if (prefersReducedMotion || typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
             scope.querySelectorAll('.time-wrapper, .content-wrapper').forEach(el => {
                 el.style.opacity = 1;
@@ -1206,7 +1449,6 @@
             });
             return;
         }
-
         const rows = scope.querySelectorAll('.timeline-row:not([data-animated])');
         rows.forEach((row) => {
             row.dataset.animated = '1';
@@ -1255,11 +1497,297 @@
                 });
             }
         });
+
+        initTypewriter(scope);
     }
 
+    /* 单行高亮修复：用事件委托，只允许一行 active，避免“时间重叠感” */
+    const timelineGrid = document.querySelector('.timeline-grid');
+    function setActiveRow(row) {
+        document.querySelectorAll('.timeline-row.timeline-row--active').forEach(r => {
+            if (r !== row) r.classList.remove('timeline-row--active');
+        });
+        if (row) row.classList.add('timeline-row--active');
+    }
+    if (timelineGrid) {
+        timelineGrid.addEventListener('mouseover', (e) => {
+            const row = e.target.closest('.timeline-row');
+            if (!row || !timelineGrid.contains(row)) return;
+            setActiveRow(row);
+            if (cursorGlow) cursorGlow.classList.add('cursor-glow--active');
+        });
+        timelineGrid.addEventListener('mouseout', (e) => {
+            const related = e.relatedTarget && e.relatedTarget.closest
+                ? e.relatedTarget.closest('.timeline-row')
+                : null;
+            if (!related || !timelineGrid.contains(related)) {
+                setActiveRow(null);
+                if (cursorGlow) cursorGlow.classList.remove('cursor-glow--active');
+            }
+        });
+    }
+
+    /* 磁吸效果：只作用在 axis-dot / dock 按钮等，不再影响 entry-card */
+    function initMagneticElements(root) {
+        if (typeof gsap === 'undefined') return;
+        const scope = root || document;
+        const magneticItems = scope.querySelectorAll('[data-magnetic]:not([data-magnetic-initialized])');
+        magneticItems.forEach((item) => {
+            item.dataset.magneticInitialized = '1';
+            const strength = parseFloat(item.dataset.magneticStrength || '0.25');
+            let bounds;
+            function onMouseMove(e) {
+                if (!bounds) bounds = item.getBoundingClientRect();
+                const relX = e.clientX - (bounds.left + bounds.width / 2);
+                const relY = e.clientY - (bounds.top + bounds.height / 2);
+                gsap.to(item, {
+                    x: relX * strength,
+                    y: relY * strength,
+                    duration: 0.5,
+                    ease: 'power3.out'
+                });
+            }
+            function reset() {
+                bounds = null;
+                gsap.to(item, {
+                    x: 0,
+                    y: 0,
+                    duration: 0.8,
+                    ease: 'elastic.out(1.1, 0.4)'
+                });
+            }
+            item.addEventListener('mouseenter', () => {
+                bounds = item.getBoundingClientRect();
+                window.addEventListener('mousemove', onMouseMove);
+            });
+            item.addEventListener('mouseleave', () => {
+                window.removeEventListener('mousemove', onMouseMove);
+                reset();
+            });
+        });
+    }
+    initMagneticElements(document);
+
+    /* 搜索 / 类型过滤 / 标签过滤：全部通过 URL 参数刷新 */
+    const searchForm = document.getElementById('timeline-search-form');
+    if (searchForm) {
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(searchForm);
+            const params = new URLSearchParams(window.location.search);
+            params.delete('page');
+            const q = (formData.get('q') || '').trim();
+            if (q) params.set('q', q); else params.delete('q');
+            const type = formData.get('type');
+            if (type && type !== 'all') params.set('type', type); else params.delete('type');
+            const tag = formData.get('tag');
+            if (tag) params.set('tag', tag);
+            window.location.search = params.toString();
+        });
+    }
+
+    document.querySelectorAll('.filter-pill').forEach((pill) => {
+        pill.addEventListener('click', () => {
+            const type = pill.dataset.filter;
+            const params = new URLSearchParams(window.location.search);
+            params.delete('page');
+            if (type === 'all') params.delete('type');
+            else params.set('type', type);
+            const qInput = searchForm && searchForm.querySelector('input[name="q"]');
+            if (qInput && qInput.value.trim()) params.set('q', qInput.value.trim());
+            if (selectedTag) params.set('tag', selectedTag);
+            window.location.search = params.toString();
+        });
+    });
+
+    document.querySelectorAll('.tag-chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+            const tag = chip.dataset.tag;
+            const params = new URLSearchParams(window.location.search);
+            params.delete('page');
+            if (chip.classList.contains('tag-chip--active')) {
+                params.delete('tag');
+            } else {
+                params.set('tag', tag);
+            }
+            const qInput = searchForm && searchForm.querySelector('input[name="q"]');
+            if (qInput && qInput.value.trim()) params.set('q', qInput.value.trim());
+            const typeInput = searchForm && searchForm.querySelector('input[name="type"]');
+            if (typeInput && typeInput.value) params.set('type', typeInput.value);
+            window.location.search = params.toString();
+        });
+    });
+
+    /* 年份电梯：点击滚动 + IntersectionObserver 自动高亮 */
+    const yearButtons = document.querySelectorAll('.year-pill');
+    function scrollToRow(row) {
+        if (!row) return;
+        if (lenisInstance && typeof lenisInstance.scrollTo === 'function') {
+            lenisInstance.scrollTo(row, { offset: -160 });
+        } else {
+            const top = row.getBoundingClientRect().top + window.scrollY - 160;
+            window.scrollTo({ top, behavior: 'smooth' });
+        }
+    }
+    yearButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const targetYear = btn.dataset.year;
+            const targetRow = document.querySelector(`.timeline-row[data-year="${targetYear}"]`);
+            if (targetRow) scrollToRow(targetRow);
+        });
+    });
+    function setActiveYear(year) {
+        yearButtons.forEach((btn) => {
+            btn.classList.toggle('year-pill--active', btn.dataset.year === String(year));
+        });
+    }
+    if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+            let candidate = null;
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                const year = entry.target.dataset.year;
+                if (!candidate || entry.boundingClientRect.top < candidate.top) {
+                    candidate = { year, top: entry.boundingClientRect.top };
+                }
+            });
+            if (candidate && candidate.year) setActiveYear(candidate.year);
+        }, { threshold: 0.35 });
+        document.querySelectorAll('.timeline-row').forEach((row) => io.observe(row));
+    }
+
+    /* 编辑按钮绑定 */
+    function bindEditButtons(root) {
+        const scope = root || document;
+        const editButtons = scope.querySelectorAll('.btn-edit:not([data-edit-bound])');
+        editButtons.forEach((btn) => {
+            btn.dataset.editBound = '1';
+            btn.addEventListener('click', () => openEditModal(btn));
+        });
+    }
+    bindEditButtons(document);
+
+    /* 打字机效果：短文本 Entry */
+    function runTypewriter(el) {
+        const text = el.dataset.fullText || '';
+        el.textContent = '';
+        let index = 0;
+        const speed = 30;
+        function step() {
+            if (index >= text.length) return;
+            el.textContent += text[index++];
+            setTimeout(step, speed);
+        }
+        step();
+    }
+
+    function initTypewriter(root) {
+        const scope = root || document;
+        const targets = scope.querySelectorAll('.entry-body[data-typewriter="1"]:not([data-typewriter-init])');
+        if (!targets.length) return;
+        targets.forEach(el => {
+            el.dataset.typewriterInit = '1';
+            el.dataset.fullText = el.textContent;
+            el.textContent = '';
+            if (!prefersReducedMotion && typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+                ScrollTrigger.create({
+                    trigger: el.closest('.timeline-row') || el,
+                    start: 'center center+=40',
+                    once: true,
+                    onEnter: () => runTypewriter(el)
+                });
+            } else if ('IntersectionObserver' in window) {
+                const io = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            runTypewriter(el);
+                            io.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.5 });
+                io.observe(el);
+            } else {
+                el.textContent = el.dataset.fullText;
+            }
+        });
+    }
+
+    /* 图片灯箱 Lightbox */
+    const lightboxEl = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-image');
+    const lightboxCaption = document.getElementById('lightbox-caption');
+    const lightboxMeta = document.getElementById('lightbox-meta');
+    const lightboxCloseBtn = lightboxEl.querySelector('.lightbox__close');
+    const lightboxPrev = lightboxEl.querySelector('.lightbox__nav--prev');
+    const lightboxNext = lightboxEl.querySelector('.lightbox__nav--next');
+    let lightboxItems = [];
+    let lightboxIndex = 0;
+
+    function buildLightboxItems(root) {
+        const scope = root || document;
+        const images = scope.querySelectorAll('.photo-frame img:not([data-lightbox-bound])');
+        images.forEach(img => {
+            img.dataset.lightboxBound = '1';
+            const row = img.closest('.timeline-row');
+            const captionEl = row.querySelector('.photo-caption');
+            const timeEl = row.querySelector('.time-label');
+            const item = {
+                src: img.getAttribute('src'),
+                caption: captionEl ? captionEl.textContent.trim() : '',
+                time: timeEl ? timeEl.textContent.trim() : ''
+            };
+            const index = lightboxItems.length;
+            lightboxItems.push(item);
+            img.dataset.lightboxIndex = String(index);
+            img.addEventListener('click', () => openLightbox(index));
+        });
+    }
+
+    function openLightbox(index) {
+        if (!lightboxEl || !lightboxItems.length) return;
+        lightboxIndex = index;
+        const item = lightboxItems[index];
+        lightboxImg.src = item.src;
+        lightboxCaption.textContent = item.caption;
+        lightboxMeta.textContent = item.time;
+        lightboxEl.classList.add('lightbox--visible');
+        lightboxEl.setAttribute('aria-hidden', 'false');
+        document.documentElement.classList.add('modal-open');
+        if (lenisInstance) lenisInstance.stop();
+    }
+
+    function closeLightbox() {
+        if (!lightboxEl) return;
+        lightboxEl.classList.remove('lightbox--visible');
+        lightboxEl.setAttribute('aria-hidden', 'true');
+        document.documentElement.classList.remove('modal-open');
+        if (lenisInstance) lenisInstance.start();
+    }
+
+    function showLightboxOffset(delta) {
+        if (!lightboxItems.length) return;
+        lightboxIndex = (lightboxIndex + delta + lightboxItems.length) % lightboxItems.length;
+        openLightbox(lightboxIndex);
+    }
+
+    if (lightboxCloseBtn) lightboxCloseBtn.addEventListener('click', closeLightbox);
+    if (lightboxPrev) lightboxPrev.addEventListener('click', () => showLightboxOffset(-1));
+    if (lightboxNext) lightboxNext.addEventListener('click', () => showLightboxOffset(1));
+    if (lightboxEl) {
+        lightboxEl.addEventListener('click', (e) => {
+            if (e.target === lightboxEl) closeLightbox();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (!lightboxEl.classList.contains('lightbox--visible')) return;
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowLeft') showLightboxOffset(-1);
+            if (e.key === 'ArrowRight') showLightboxOffset(1);
+        });
+    }
+
+    /* GSAP 基础初始化 */
     if (!prefersReducedMotion && typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
         gsap.registerPlugin(ScrollTrigger);
-
         if (lenisInstance) {
             lenisInstance.on('scroll', ScrollTrigger.update);
             ScrollTrigger.scrollerProxy(document.body, {
@@ -1271,13 +1799,9 @@
                 }
             });
         }
-
         enhanceTimelineRows(document);
-
         ScrollTrigger.addEventListener('refresh', () => {
-            if (lenisInstance && typeof lenisInstance.update === 'function') {
-                lenisInstance.update();
-            }
+            if (lenisInstance && typeof lenisInstance.update === 'function') lenisInstance.update();
         });
         ScrollTrigger.refresh();
     } else {
@@ -1285,183 +1809,12 @@
             el.style.opacity = 1;
             el.style.transform = 'none';
         });
+        initTypewriter(document);
     }
 
-    /* 6. 高亮逻辑：用事件委托 + 单行激活，避免「时间重叠」 */
-    const timelineGrid = document.querySelector('.timeline-grid');
+    buildLightboxItems(document);
 
-    function setActiveRow(row) {
-        document.querySelectorAll('.timeline-row.timeline-row--active').forEach(r => {
-            if (r !== row) r.classList.remove('timeline-row--active');
-        });
-        if (row) row.classList.add('timeline-row--active');
-    }
-
-    if (timelineGrid) {
-        timelineGrid.addEventListener('mouseover', (e) => {
-            const row = e.target.closest('.timeline-row');
-            if (!row || !timelineGrid.contains(row)) return;
-            setActiveRow(row);
-            if (cursorGlow) cursorGlow.classList.add('cursor-glow--active');
-        });
-
-        timelineGrid.addEventListener('mouseout', (e) => {
-            const related = e.relatedTarget && e.relatedTarget.closest
-                ? e.relatedTarget.closest('.timeline-row')
-                : null;
-            if (!related) {
-                setActiveRow(null);
-                if (cursorGlow) cursorGlow.classList.remove('cursor-glow--active');
-            }
-        });
-    }
-
-    /* 7. 磁性效果（支持动态追加元素） */
-    function initMagneticElements(root) {
-        if (typeof gsap === 'undefined') return;
-        const scope = root || document;
-        const magneticItems = scope.querySelectorAll('[data-magnetic]:not([data-magnetic-initialized])');
-        magneticItems.forEach((item) => {
-            item.dataset.magneticInitialized = '1';
-            const strength = parseFloat(item.dataset.magneticStrength || '0.25');
-            let bounds;
-
-            function onMouseMove(e) {
-                if (!bounds) bounds = item.getBoundingClientRect();
-                const relX = e.clientX - (bounds.left + bounds.width / 2);
-                const relY = e.clientY - (bounds.top + bounds.height / 2);
-
-                gsap.to(item, {
-                    x: relX * strength,
-                    y: relY * strength,
-                    duration: 0.5,
-                    ease: 'power3.out'
-                });
-            }
-
-            function reset() {
-                bounds = null;
-                gsap.to(item, {
-                    x: 0,
-                    y: 0,
-                    duration: 0.8,
-                    ease: 'elastic.out(1.1, 0.4)'
-                });
-            }
-
-            item.addEventListener('mouseenter', () => {
-                bounds = item.getBoundingClientRect();
-                window.addEventListener('mousemove', onMouseMove);
-            });
-
-            item.addEventListener('mouseleave', () => {
-                window.removeEventListener('mousemove', onMouseMove);
-                reset();
-            });
-        });
-    }
-    initMagneticElements(document);
-
-    /* 8. 搜索 & 类型过滤交互（通过 URL 参数刷新） */
-    const searchForm = document.getElementById('timeline-search-form');
-    if (searchForm) {
-        searchForm.addEventListener('submit', (e) => {
-            // 默认表单提交即可，这里只清理 page 参数
-            e.preventDefault();
-            const formData = new FormData(searchForm);
-            const params = new URLSearchParams(window.location.search);
-            params.delete('page');
-            const q = (formData.get('q') || '').trim();
-            if (q) {
-                params.set('q', q);
-            } else {
-                params.delete('q');
-            }
-            const type = formData.get('type');
-            if (type && type !== 'all') {
-                params.set('type', type);
-            }
-            const qs = params.toString();
-            window.location.search = qs;
-        });
-    }
-
-    document.querySelectorAll('.filter-pill').forEach((pill) => {
-        pill.addEventListener('click', () => {
-            const type = pill.dataset.filter;
-            const params = new URLSearchParams(window.location.search);
-            params.delete('page');
-            if (type === 'all') {
-                params.delete('type');
-            } else {
-                params.set('type', type);
-            }
-            const qInput = searchForm && searchForm.querySelector('input[name="q"]');
-            if (qInput && qInput.value.trim()) {
-                params.set('q', qInput.value.trim());
-            }
-            const qs = params.toString();
-            window.location.search = qs;
-        });
-    });
-
-    /* 9. 年份电梯导航：点击跳转 & 自动高亮当前年份 */
-    const yearButtons = document.querySelectorAll('.year-pill');
-
-    function scrollToRow(row) {
-        if (!row) return;
-        if (lenisInstance && typeof lenisInstance.scrollTo === 'function') {
-            lenisInstance.scrollTo(row, { offset: -160 });
-        } else {
-            const top = row.getBoundingClientRect().top + window.scrollY - 160;
-            window.scrollTo({ top, behavior: 'smooth' });
-        }
-    }
-
-    yearButtons.forEach((btn) => {
-        btn.addEventListener('click', () => {
-            const targetYear = btn.dataset.year;
-            const targetRow = document.querySelector(`.timeline-row[data-year="${targetYear}"]`);
-            if (targetRow) scrollToRow(targetRow);
-        });
-    });
-
-    function setActiveYear(year) {
-        yearButtons.forEach((btn) => {
-            btn.classList.toggle('year-pill--active', btn.dataset.year === String(year));
-        });
-    }
-
-    if ('IntersectionObserver' in window) {
-        const io = new IntersectionObserver((entries) => {
-            let candidate = null;
-            entries.forEach((entry) => {
-                if (!entry.isIntersecting) return;
-                const year = entry.target.dataset.year;
-                if (!candidate || entry.boundingClientRect.top < candidate.top) {
-                    candidate = { year, top: entry.boundingClientRect.top };
-                }
-            });
-            if (candidate && candidate.year) {
-                setActiveYear(candidate.year);
-            }
-        }, { threshold: 0.35 });
-
-        document.querySelectorAll('.timeline-row').forEach((row) => io.observe(row));
-    }
-
-    /* 10. 编辑按钮绑定 */
-    function bindEditButtons(root) {
-        const scope = root || document;
-        const editButtons = scope.querySelectorAll('.btn-edit:not([data-edit-bound])');
-        editButtons.forEach((btn) => {
-            btn.dataset.editBound = '1';
-            btn.addEventListener('click', () => openEditModal(btn));
-        });
-    }
-    bindEditButtons(document);
-
-    /* 11. 无限加载：滚动到底部自动请求 /api/timeline */
+    /* 无限加载 */
     let currentPage = Number('{{ page|default(1)|int }}');
     let loadingMore = false;
     let hasMore = '{{ "true" if has_more else "false" }}' === 'true';
@@ -1471,7 +1824,6 @@
     async function loadNextPage() {
         if (!hasMore || loadingMore) return;
         loadingMore = true;
-
         try {
             const params = new URLSearchParams(window.location.search);
             const nextPage = currentPage + 1;
@@ -1491,18 +1843,15 @@
                 bindEditButtons(temp);
                 initMagneticElements(temp);
                 enhanceTimelineRows(temp);
+                buildLightboxItems(temp);
 
-                if (typeof ScrollTrigger !== 'undefined') {
-                    ScrollTrigger.refresh();
-                }
+                if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
             }
             currentPage = nextPage;
             hasMore = !!data.has_more;
-            if (!hasMore && sentinel) {
-                sentinel.remove();
-            }
-        } catch (err) {
-            console.error(err);
+            if (!hasMore && sentinel) sentinel.remove();
+        } catch (e) {
+            console.error(e);
         } finally {
             loadingMore = false;
         }
@@ -1511,9 +1860,7 @@
     if (sentinel && hasMore && 'IntersectionObserver' in window) {
         const ioMore = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    loadNextPage();
-                }
+                if (entry.isIntersecting) loadNextPage();
             });
         }, { rootMargin: '0px 0px 300px 0px' });
         ioMore.observe(sentinel);

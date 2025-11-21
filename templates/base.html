@@ -30,67 +30,40 @@
         }
 
         .noise-overlay {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 999;
-            opacity: 0.06;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 999; opacity: 0.06;
             filter: url(#noiseFilter);
         }
 
         header {
-            position: fixed;
-            top: 0; width: 100%; height: 80px;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 3rem;
-            box-sizing: border-box;
+            position: fixed; top: 0; width: 100%; height: 80px; z-index: 100;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 3rem; box-sizing: border-box;
             mix-blend-mode: difference;
         }
 
         .nav-link {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #aaaaaa;
-            text-decoration: none;
-            margin-left: 2rem;
+            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px;
+            color: #aaaaaa; text-decoration: none; margin-left: 2rem;
             transition: color 0.3s ease;
         }
-        .nav-link:hover,
-        .nav-link.active {
-            color: #ffffff;
-        }
+        .nav-link:hover, .nav-link.active { color: #ffffff; }
 
         .brand {
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 700;
-            font-size: 1.2rem;
-            letter-spacing: -1px;
-            color: white;
+            font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+            font-size: 1.2rem; letter-spacing: -1px; color: white;
             text-decoration: none;
         }
 
         .nest-badge {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            color: white;
-            opacity: 0.7;
-            transition: opacity 0.3s;
+            display: flex; align-items: center; gap: 10px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+            color: white; opacity: 0.7; transition: opacity 0.3s;
         }
         .nest-badge:hover { opacity: 1; }
         .nest-dot {
-            width: 6px;
-            height: 6px;
-            background: var(--neon-pink);
-            border-radius: 50%;
+            width: 6px; height: 6px; background: var(--neon-pink); border-radius: 50%;
             box-shadow: 0 0 12px var(--neon-pink);
         }
 
@@ -99,7 +72,6 @@
             .nav-link { margin-left: 1rem; }
         }
 
-        /* Preloader */
         .preloader {
             position: fixed;
             inset: 0;
@@ -205,9 +177,7 @@
             const pre = document.getElementById('preloader');
             if (!pre) return;
             pre.classList.add('preloader--hidden');
-            setTimeout(() => {
-                pre.remove();
-            }, 900);
+            setTimeout(() => pre.remove(), 900);
         });
     </script>
 </body>

@@ -1,10 +1,17 @@
+import os
+import re
+from datetime import datetime
+
 from flask import (
-    Flask, render_template, request, redirect,
-    url_for, send_from_directory, jsonify
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    send_from_directory,
+    jsonify,
 )
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, date
-import os
 from werkzeug.utils import secure_filename
 
 db = SQLAlchemy()
@@ -12,12 +19,14 @@ db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
-    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
     app.jinja_env.auto_reload = True
 
     app.config.from_mapping(
         SECRET_KEY="your-secret-key",
-        SQLALCHEMY_DATABASE_URI="sqlite:///" + os.path.join(app.instance_path, "lovejournal.sqlite"),
+        SQLALCHEMY_DATABASE_URI="sqlite:///" + os.path.join(
+            app.instance_path, "lovejournal.sqlite"
+        ),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         UPLOAD_FOLDER=os.path.join(app.instance_path, "uploads"),
         MAX_CONTENT_LENGTH=16 * 1024 * 1024,
@@ -29,20 +38,22 @@ def create_app():
 
     db.init_app(app)
 
-    # ---- Models ----
+    # ========== Models ==========
+
     class Entry(db.Model):
         id = db.Column(db.Integer, primary_key=True)
         created_at = db.Column(db.DateTime, nullable=False, default=datetime.now, index=True)
         content = db.Column(db.Text, nullable=False)
-        # 新增：地点文本（可写“上海 徐家汇”或“31.23,121.47 Shanghai”）
         location = db.Column(db.String(255))
+        # 用逗号分隔的小写标签，如 "旅行,吵架"
+        tags = db.Column(db.String(255))
 
     class KeyDate(db.Model):
         id = db.Column(db.Integer, primary_key=True)
         title = db.Column(db.String(200), nullable=False)
-        # 记录完整日期+时间
         date = db.Column(db.DateTime, nullable=False, index=True)
         location = db.Column(db.String(255))
+        tags = db.Column(db.String(255))
 
     class Photo(db.Model):
         id = db.Column(db.Integer, primary_key=True)
@@ -50,45 +61,81 @@ def create_app():
         created_at = db.Column(db.DateTime, nullable=False, default=datetime.now, index=True)
         caption = db.Column(db.String(255))
         location = db.Column(db.String(255))
+        tags = db.Column(db.String(255))
 
     with app.app_context():
-        db.create_all()  # 如已有数据且要新增字段，建议用迁移工具或手动 ALTER
+        db.create_all()  # 如果新增字段（location/tags）报错，需要迁移或重建库
 
-    # ---- Helpers ----
-    def allowed_file(filename):
+    # ========== Helpers ==========
+
+    def allowed_file(filename: str) -> bool:
         return "." in filename and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
 
     @app.context_processor
     def inject_helpers():
         def get_days_diff(d):
             """返回 (diff, state)；state: past / future / today"""
-            today = datetime.now()
-            target = d
-            if isinstance(d, datetime):
-                pass
-            diff = (target.date() - today.date()).days
-            if diff < 0:
-                return (abs(diff), "past")
-            if diff > 0:
-                return (diff, "future")
+            if not isinstance(d, datetime):
+                return (0, "today")
+            today = datetime.now().date()
+            diff_days = (d.date() - today).days
+            if diff_days < 0:
+                return (-diff_days, "past")
+            if diff_days > 0:
+                return (diff_days, "future")
             return (0, "today")
 
         return dict(get_days_diff=get_days_diff)
 
-    # ---- Query Helpers ----
+    tag_pattern = re.compile(r"#([\w\u4e00-\u9fa5]+)")
 
-    def build_timeline(search=None, type_filter=None):
+    def extract_tags(*texts):
+        """从多段文本里解析 #标签，全部转小写去重"""
+        found = set()
+        for t in texts:
+            if not t:
+                continue
+            for m in tag_pattern.findall(t):
+                found.add(m.lower())
+        return sorted(found)
+
+    def build_tag_index():
+        """把所有 Entry/Photo/KeyDate 里的 tags 字段扫一遍，做个标签云"""
+        all_tags = set()
+        for model in (Entry, Photo, KeyDate):
+            for item in model.query.all():
+                if not getattr(item, "tags", None):
+                    continue
+                for t in item.tags.split(","):
+                    t = t.strip()
+                    if t:
+                        all_tags.add(t)
+        return sorted(all_tags)
+
+    def build_timeline(search=None, type_filter=None, tag=None):
         """
-        将 Entry / KeyDate / Photo 混排为统一时间轴，并支持关键词 & 类型过滤
+        混排 Entry / KeyDate / Photo 成时间轴列表
+        search: 关键词
+        type_filter: all / entry / photo / keydate
+        tag: 单个标签过滤
         """
         search = (search or "").strip().lower()
         type_filter = (type_filter or "all").lower()
+        tag = (tag or "").strip().lower()
 
         def match_text(*parts):
             if not search:
                 return True
             blob = " ".join([p or "" for p in parts]).lower()
             return search in blob
+
+        def match_tag(tags_text):
+            if not tag:
+                return True
+            if not tags_text:
+                return False
+            tags_list = [t.strip() for t in tags_text.split(",") if t.strip()]
+            return tag in tags_list
 
         include_entry = type_filter in ("all", "entry", "text")
         include_photo = type_filter in ("all", "photo", "img", "image")
@@ -98,73 +145,104 @@ def create_app():
 
         if include_entry:
             for e in Entry.query.all():
+                if not match_tag(e.tags):
+                    continue
                 if match_text(e.content, e.location):
                     timeline.append({"type": "entry", "timestamp": e.created_at, "item": e})
 
         if include_keydate:
             for k in KeyDate.query.all():
+                if not match_tag(k.tags):
+                    continue
                 if match_text(k.title, k.location):
                     timeline.append({"type": "keydate", "timestamp": k.date, "item": k})
 
         if include_photo:
             for p in Photo.query.all():
+                if not match_tag(p.tags):
+                    continue
                 if match_text(p.caption, p.filename, p.location):
                     timeline.append({"type": "photo", "timestamp": p.created_at, "item": p})
 
-        # 最新在前
         timeline.sort(key=lambda x: x["timestamp"], reverse=True)
         return timeline
 
     def extract_years(timeline):
-        return sorted({t["timestamp"].year for t in timeline}, reverse=True)
+        return sorted({node["timestamp"].year for node in timeline}, reverse=True)
 
-    def parse_datetime(date_str):
-        """解析前端传入的 datetime-local 字符串，如果空则返回现在"""
-        if not date_str:
+    def parse_datetime(value):
+        if not value:
             return datetime.now()
         try:
-            return datetime.strptime(date_str, "%Y-%m-%dT%H:%M")
+            return datetime.strptime(value, "%Y-%m-%dT%H:%M")
         except ValueError:
             return datetime.now()
+
+    coord_number_re = re.compile(r"(-?\d+(?:\.\d+)?)")
 
     def parse_coords_from_location(location_text):
         """
-        从 location 文本中尝试解析出 "lat,lng" 浮点数对；
-        例如：'31.2304,121.4737 Shanghai' -> (31.2304, 121.4737)
+        更鲁棒的坐标解析：
+        - 支持 '31.23,121.47 Shanghai'
+        - 支持 '31.23 121.47'
+        - 自动忽略后面的中文或其他文本
         """
         if not location_text:
             return None
-        txt = location_text.replace("，", ",")
-        # 只看前两个逗号分隔字段
-        parts = [p.strip() for p in txt.split(",")[:2]]
-        if len(parts) < 2:
+        text = str(location_text).replace("，", ",")
+        nums = coord_number_re.findall(text)
+        if len(nums) < 2:
             return None
         try:
-            lat = float(parts[0])
-            lng = float(parts[1])
-            return (lat, lng)
+            lat = float(nums[0])
+            lng = float(nums[1])
+            return lat, lng
         except ValueError:
             return None
 
-    # ---- Routes ----
+    def build_on_this_day():
+        """
+        “那年今日”：找出往年同月同日的记录（不包含今年）
+        返回按时间倒序的列表（可能多条）
+        """
+        today = datetime.now()
+        full = build_timeline()
+        result = []
+        for node in full:
+            ts = node["timestamp"]
+            if ts.month == today.month and ts.day == today.day and ts.year < today.year:
+                result.append(node)
+        # 最新的在前
+        result.sort(key=lambda x: x["timestamp"], reverse=True)
+        return result
+
+    # ========== Routes ==========
 
     @app.route("/")
     def index():
-        # 搜索 & 类型过滤
         search_query = request.args.get("q", "")
         filter_type = request.args.get("type", "all")
+        selected_tag = request.args.get("tag", "").strip().lower()
         page = request.args.get("page", 1, type=int)
         per_page = 24
 
-        full_timeline = build_timeline(search_query, filter_type)
-        total = len(full_timeline)
+        full_timeline = build_timeline(search_query, filter_type, selected_tag)
+        years = extract_years(full_timeline)
 
+        total = len(full_timeline)
         start = (page - 1) * per_page
         end = start + per_page
         page_items = full_timeline[start:end]
         has_more = end < total
 
-        years = extract_years(full_timeline)
+        all_tags = build_tag_index()
+
+        on_this_day = None
+        # 只在“默认视图”下显示那年今日：没有搜索、没有过滤、没有标签
+        if not search_query and filter_type == "all" and not selected_tag:
+            otd_list = build_on_this_day()
+            if otd_list:
+                on_this_day = otd_list[0]
 
         return render_template(
             "index.html",
@@ -172,20 +250,24 @@ def create_app():
             years=years,
             search_query=search_query,
             filter_type=filter_type,
+            selected_tag=selected_tag,
+            all_tags=all_tags,
             page=page,
             has_more=has_more,
             start_index=start,
+            on_this_day=on_this_day,
         )
 
     @app.route("/api/timeline")
     def api_timeline():
-        """无限加载使用：返回新增的时间轴 HTML 片段"""
+        """无限滚动加载更多时间轴行"""
         search_query = request.args.get("q", "")
         filter_type = request.args.get("type", "all")
+        selected_tag = request.args.get("tag", "").strip().lower()
         page = request.args.get("page", 1, type=int)
         per_page = 24
 
-        full_timeline = build_timeline(search_query, filter_type)
+        full_timeline = build_timeline(search_query, filter_type, selected_tag)
         total = len(full_timeline)
 
         start = (page - 1) * per_page
@@ -203,52 +285,55 @@ def create_app():
 
     @app.route("/map")
     def map_view():
-        """地图视图：把带经纬度的 location 渲染到地图上"""
+        """地图视图 + 热力图"""
         markers = []
 
-        for e in Entry.query.filter(Entry.location.isnot(None)).all():
+        for e in Entry.query.all():
             coords = parse_coords_from_location(e.location)
             if not coords:
                 continue
+            lat, lng = coords
             markers.append(
                 {
                     "id": e.id,
                     "kind": "entry",
-                    "lat": coords[0],
-                    "lng": coords[1],
-                    "label": e.location,
+                    "lat": lat,
+                    "lng": lng,
+                    "label": e.location or "",
                     "timestamp": e.created_at.strftime("%Y-%m-%d %H:%M"),
                     "snippet": (e.content or "")[:80],
                 }
             )
 
-        for k in KeyDate.query.filter(KeyDate.location.isnot(None)).all():
+        for k in KeyDate.query.all():
             coords = parse_coords_from_location(k.location)
             if not coords:
                 continue
+            lat, lng = coords
             markers.append(
                 {
                     "id": k.id,
                     "kind": "keydate",
-                    "lat": coords[0],
-                    "lng": coords[1],
-                    "label": k.location,
+                    "lat": lat,
+                    "lng": lng,
+                    "label": k.location or "",
                     "timestamp": k.date.strftime("%Y-%m-%d %H:%M"),
                     "snippet": (k.title or "")[:80],
                 }
             )
 
-        for p in Photo.query.filter(Photo.location.isnot(None)).all():
+        for p in Photo.query.all():
             coords = parse_coords_from_location(p.location)
             if not coords:
                 continue
+            lat, lng = coords
             markers.append(
                 {
                     "id": p.id,
                     "kind": "photo",
-                    "lat": coords[0],
-                    "lng": coords[1],
-                    "label": p.location,
+                    "lat": lat,
+                    "lng": lng,
+                    "label": p.location or "",
                     "timestamp": p.created_at.strftime("%Y-%m-%d %H:%M"),
                     "snippet": (p.caption or "")[:80],
                     "image": url_for("uploaded_file", filename=p.filename),
@@ -257,29 +342,67 @@ def create_app():
 
         return render_template("map.html", markers=markers)
 
-    # ---- Create Actions ----
+    # ====== Create ======
+
+    def merge_location_and_coords(location_text, coords_text):
+        """
+        把前端写入的地点文本 + coords 拼在一起：
+        - coords 为 "lat,lng"
+        - 存库格式："lat,lng 北京 三里屯"
+        """
+        location_text = (location_text or "").strip()
+        coords_text = (coords_text or "").strip()
+        if coords_text:
+            if location_text:
+                return f"{coords_text} {location_text}"
+            return coords_text
+        return location_text or None
 
     @app.post("/add/entry")
     def add_entry():
         content = request.form.get("content", "").strip()
         custom_date = request.form.get("custom_date")
-        location = request.form.get("location", "").strip() or None
+        location_text = request.form.get("location", "")
+        coords_text = request.form.get("location_coords", "")
 
         if content:
             dt = parse_datetime(custom_date)
-            db.session.add(Entry(content=content, created_at=dt, location=location))
+            location = merge_location_and_coords(location_text, coords_text)
+            tags_list = extract_tags(content, location)
+            tags_str = ",".join(tags_list) if tags_list else None
+
+            db.session.add(
+                Entry(
+                    content=content,
+                    created_at=dt,
+                    location=location,
+                    tags=tags_str,
+                )
+            )
             db.session.commit()
         return redirect(url_for("index"))
 
     @app.post("/add/keydate")
     def add_keydate():
         title = request.form.get("title", "").strip()
-        date_str = request.form.get("date", "").strip()
-        location = request.form.get("location", "").strip() or None
+        date_str = request.form.get("date") or request.form.get("custom_date")
+        location_text = request.form.get("location", "")
+        coords_text = request.form.get("location_coords", "")
 
         if title:
             dt = parse_datetime(date_str)
-            db.session.add(KeyDate(title=title, date=dt, location=location))
+            location = merge_location_and_coords(location_text, coords_text)
+            tags_list = extract_tags(title, location)
+            tags_str = ",".join(tags_list) if tags_list else None
+
+            db.session.add(
+                KeyDate(
+                    title=title,
+                    date=dt,
+                    location=location,
+                    tags=tags_str,
+                )
+            )
             db.session.commit()
 
         if "anniversaries" in (request.referrer or ""):
@@ -291,13 +414,14 @@ def create_app():
         file = request.files.get("photo")
         caption = request.form.get("caption", "").strip()
         custom_date = request.form.get("custom_date")
-        location = request.form.get("location", "").strip() or None
+        location_text = request.form.get("location", "")
+        coords_text = request.form.get("location_coords", "")
 
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             base, ext = os.path.splitext(filename)
-            count = 1
             save_name = filename
+            count = 1
             while os.path.exists(os.path.join(app.config["UPLOAD_FOLDER"], save_name)):
                 save_name = f"{base}_{count}{ext}"
                 count += 1
@@ -305,60 +429,76 @@ def create_app():
             file.save(os.path.join(app.config["UPLOAD_FOLDER"], save_name))
 
             dt = parse_datetime(custom_date)
-            db.session.add(Photo(filename=save_name, caption=caption, created_at=dt, location=location))
+            location = merge_location_and_coords(location_text, coords_text)
+            tags_list = extract_tags(caption, location)
+            tags_str = ",".join(tags_list) if tags_list else None
+
+            db.session.add(
+                Photo(
+                    filename=save_name,
+                    caption=caption,
+                    created_at=dt,
+                    location=location,
+                    tags=tags_str,
+                )
+            )
             db.session.commit()
         return redirect(url_for("index"))
 
-    # ---- Edit & Delete ----
+    # ====== Edit & Delete ======
 
-    @app.post("/edit/<type>/<int:id>")
-    def edit_item(type, id):
-        """统一编辑入口：Entry / KeyDate / Photo"""
+    @app.post("/edit/<type>/<int:item_id>")
+    def edit_item(type, item_id):
         model_map = {"entry": Entry, "keydate": KeyDate, "photo": Photo}
         model = model_map.get(type)
         if not model:
             return redirect(request.referrer or url_for("index"))
 
-        item = db.get_or_404(model, id)
+        item = db.get_or_404(model, item_id)
 
-        # 通用地点
-        location = request.form.get("location", "").strip()
-        if hasattr(item, "location"):
-            item.location = location or None
+        location_text = request.form.get("location", "")
+        coords_text = request.form.get("location_coords", "")
+        new_location = merge_location_and_coords(location_text, coords_text)
 
         if type == "entry":
             content = request.form.get("content", "").strip()
+            custom_date = request.form.get("custom_date")
             if content:
                 item.content = content
-            custom_date = request.form.get("custom_date")
             item.created_at = parse_datetime(custom_date)
+            item.location = new_location
+            tags_list = extract_tags(content, new_location)
+            item.tags = ",".join(tags_list) if tags_list else None
 
         elif type == "keydate":
             title = request.form.get("title", "").strip()
+            date_str = request.form.get("date") or request.form.get("custom_date")
             if title:
                 item.title = title
-            date_str = request.form.get("date") or request.form.get("custom_date")
             item.date = parse_datetime(date_str)
+            item.location = new_location
+            tags_list = extract_tags(title, new_location)
+            item.tags = ",".join(tags_list) if tags_list else None
 
         elif type == "photo":
             caption = request.form.get("caption", "").strip()
-            item.caption = caption
             custom_date = request.form.get("custom_date")
-            item.created_at = parse_datetime(custom_date)
-
             file = request.files.get("photo")
+            if caption:
+                item.caption = caption
+            item.created_at = parse_datetime(custom_date)
+            item.location = new_location
+
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
                 base, ext = os.path.splitext(filename)
-                count = 1
                 save_name = filename
+                count = 1
                 while os.path.exists(os.path.join(app.config["UPLOAD_FOLDER"], save_name)):
                     save_name = f"{base}_{count}{ext}"
                     count += 1
-
                 file.save(os.path.join(app.config["UPLOAD_FOLDER"], save_name))
-
-                # 删除旧文件（忽略失败）
+                # 删除旧文件
                 old_path = os.path.join(app.config["UPLOAD_FOLDER"], item.filename)
                 if os.path.exists(old_path):
                     try:
@@ -367,27 +507,33 @@ def create_app():
                         pass
                 item.filename = save_name
 
+            tags_list = extract_tags(caption, new_location)
+            item.tags = ",".join(tags_list) if tags_list else None
+
         db.session.commit()
 
         if "anniversaries" in (request.referrer or ""):
             return redirect(url_for("anniversaries"))
         return redirect(request.referrer or url_for("index"))
 
-    @app.post("/delete/<type>/<int:id>")
-    def delete_item(type, id):
-        model = {"entry": Entry, "keydate": KeyDate, "photo": Photo}.get(type)
-        if model:
-            item = db.get_or_404(model, id)
-            # 顺便清理图片文件
-            if type == "photo":
-                img_path = os.path.join(app.config["UPLOAD_FOLDER"], item.filename)
-                if os.path.exists(img_path):
-                    try:
-                        os.remove(img_path)
-                    except OSError:
-                        pass
-            db.session.delete(item)
-            db.session.commit()
+    @app.post("/delete/<type>/<int:item_id>")
+    def delete_item(type, item_id):
+        model_map = {"entry": Entry, "keydate": KeyDate, "photo": Photo}
+        model = model_map.get(type)
+        if not model:
+            return redirect(request.referrer or url_for("index"))
+        item = db.get_or_404(model, item_id)
+
+        if type == "photo":
+            img_path = os.path.join(app.config["UPLOAD_FOLDER"], item.filename)
+            if os.path.exists(img_path):
+                try:
+                    os.remove(img_path)
+                except OSError:
+                    pass
+
+        db.session.delete(item)
+        db.session.commit()
         return redirect(request.referrer or url_for("index"))
 
     @app.route("/uploads/<path:filename>")
@@ -396,7 +542,7 @@ def create_app():
 
     return app
 
-app = create_app()
 
 if __name__ == "__main__":
+    app = create_app()
     app.run(debug=True, host="0.0.0.0")
