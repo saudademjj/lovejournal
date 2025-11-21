@@ -8,21 +8,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #030303; /* 极致深黑 */
+            --bg: #030303;
             --surface: #0f0f0f;
             --text-main: #ffffff;
             --text-muted: #666666;
             --accent-glow: rgba(255, 255, 255, 0.15);
             --line-color: #1a1a1a;
-
-            /* 现代高对比霓虹色，极细微使用 */
             --neon-blue: #2b00ff;
             --neon-pink: #ff003c;
         }
 
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             background-color: var(--bg);
@@ -33,51 +29,77 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* ---- 影院级 SVG 噪点 (Cinematic Grain) ---- */
         .noise-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 999; opacity: 0.06;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.06;
             filter: url(#noiseFilter);
         }
 
-        /* 顶部导航 - 极简主义 */
         header {
-            position: fixed; top: 0; width: 100%; height: 80px; z-index: 100;
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 3rem; box-sizing: border-box;
+            position: fixed;
+            top: 0; width: 100%; height: 80px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 3rem;
+            box-sizing: border-box;
             mix-blend-mode: difference;
         }
 
         .nav-link {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px;
-            color: #aaaaaa; text-decoration: none; margin-left: 2rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #aaaaaa;
+            text-decoration: none;
+            margin-left: 2rem;
             transition: color 0.3s ease;
         }
-        .nav-link:hover, .nav-link.active { color: #ffffff; }
+        .nav-link:hover,
+        .nav-link.active {
+            color: #ffffff;
+        }
 
         .brand {
-            font-family: 'Space Grotesk', sans-serif; font-weight: 700;
-            font-size: 1.2rem; letter-spacing: -1px; color: white;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 1.2rem;
+            letter-spacing: -1px;
+            color: white;
             text-decoration: none;
         }
 
         .nest-badge {
-            display: flex; align-items: center; gap: 10px;
-            font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
-            color: white; opacity: 0.7; transition: opacity 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: white;
+            opacity: 0.7;
+            transition: opacity 0.3s;
         }
         .nest-badge:hover { opacity: 1; }
         .nest-dot {
-            width: 6px; height: 6px; background: var(--neon-pink); border-radius: 50%;
+            width: 6px;
+            height: 6px;
+            background: var(--neon-pink);
+            border-radius: 50%;
             box-shadow: 0 0 12px var(--neon-pink);
         }
 
         @media (max-width: 768px) {
             header { padding: 0 1.5rem; }
+            .nav-link { margin-left: 1rem; }
         }
 
-        /* ======== 电影感预加载器 ======== */
+        /* Preloader */
         .preloader {
             position: fixed;
             inset: 0;
@@ -147,7 +169,6 @@
     </svg>
     <div class="noise-overlay"></div>
 
-    <!-- Preloader -->
     <div id="preloader" class="preloader">
         <div class="preloader-inner">
             <div class="preloader-dot"></div>
@@ -158,7 +179,18 @@
     <header>
         <a href="{{ url_for('index') }}" class="brand">JOURNAL.</a>
         <div style="display:flex; align-items:center;">
-            <a href="{{ url_for('anniversaries') }}" class="nav-link">Timeline</a>
+            <a href="{{ url_for('index') }}"
+               class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                Journal
+            </a>
+            <a href="{{ url_for('anniversaries') }}"
+               class="nav-link {% if request.endpoint == 'anniversaries' %}active{% endif %}">
+                Timeline
+            </a>
+            <a href="{{ url_for('map_view') }}"
+               class="nav-link {% if request.endpoint == 'map_view' %}active{% endif %}">
+                Map
+            </a>
             <div class="nest-badge" style="margin-left: 2rem;">
                 <div class="nest-dot"></div>
                 <span>NEST</span>
@@ -169,7 +201,6 @@
     {% block content %}{% endblock %}
 
     <script>
-        // 电影感预加载结束后淡出
         window.addEventListener('load', function () {
             const pre = document.getElementById('preloader');
             if (!pre) return;

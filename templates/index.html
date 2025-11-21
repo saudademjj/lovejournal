@@ -14,7 +14,7 @@
         overflow: hidden;
     }
 
-    /* ---------- 自定义光标光晕 ---------- */
+    /* 光标光晕 */
     .cursor-glow {
         position: fixed;
         width: 320px;
@@ -35,12 +35,93 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-        .cursor-glow {
-            display: none;
-        }
+        .cursor-glow { display: none; }
     }
 
-    /* ---------- 时间轴 Grid & 中轴线 ---------- */
+    /* 顶部搜索 & 类型过滤 */
+    .timeline-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .timeline-search {
+        flex: 1;
+        max-width: 360px;
+        position: relative;
+    }
+
+    .timeline-search-input {
+        width: 100%;
+        padding: 0.6rem 0.9rem 0.6rem 2.4rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(5,5,5,0.8);
+        color: #f5f5f5;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.85rem;
+        outline: none;
+        transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .timeline-search-input::placeholder {
+        color: #666;
+    }
+
+    .timeline-search-input:focus {
+        border-color: rgba(255,255,255,0.3);
+        background: #090909;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
+    }
+
+    .timeline-search::before {
+        content: '⌕';
+        position: absolute;
+        left: 0.9rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.78rem;
+        color: #777;
+        pointer-events: none;
+    }
+
+    .timeline-filters {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0;
+    }
+
+    .filter-pill {
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(5,5,5,0.8);
+        color: #b0b0b0;
+        padding: 0.35rem 0.9rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        cursor: pointer;
+        opacity: 0.9;
+        transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease, transform 0.25s ease;
+    }
+
+    .filter-pill.is-active {
+        color: #ffffff;
+        border-color: rgba(255,255,255,0.4);
+        background: #101010;
+        transform: translateY(-1px);
+    }
+
+    .filter-pill:hover {
+        color: #ffffff;
+        border-color: rgba(255,255,255,0.3);
+    }
+
+    /* 时间轴 Grid & 中轴线 */
     .timeline-grid {
         position: relative;
         display: grid;
@@ -78,7 +159,6 @@
         50%      { opacity: 1;   transform: scaleY(1.02); }
     }
 
-    /* ---------- 每一行节点 ---------- */
     .timeline-row {
         grid-column: 1 / -1;
         display: grid;
@@ -96,7 +176,7 @@
         align-items: center;
     }
 
-    /* 中心圆 + 霓虹环：默认低调，高亮时爆发 */
+    /* 轴心圆 */
     .axis-dot {
         position: relative;
         width: 16px;
@@ -107,7 +187,6 @@
         transform: translateZ(0);
     }
 
-    /* 霓虹环 */
     .axis-dot::after {
         content: '';
         position: absolute;
@@ -125,7 +204,6 @@
         opacity: 0.9;
     }
 
-    /* 中心实心圆 */
     .axis-dot::before {
         content: '';
         position: absolute;
@@ -139,7 +217,6 @@
             transform 0.35s cubic-bezier(0.19, 1, 0.22, 1);
     }
 
-    /* 激活态（由 JS 加 row class 控制） */
     .timeline-row--active .axis-dot::after {
         border-color: var(--neon-pink);
         box-shadow:
@@ -154,7 +231,6 @@
         transform: scale(0.95);
     }
 
-    /* 适当保留 hover 兜底 */
     .timeline-row:hover .axis-dot::after {
         border-color: var(--neon-pink);
         box-shadow:
@@ -162,7 +238,7 @@
             0 0 16px rgba(255,0,60,0.65);
     }
 
-    /* ---------- 时间列 & 内容列 ---------- */
+    /* 时间列 & 内容列 */
     .time-wrapper,
     .content-wrapper {
         display: flex;
@@ -217,7 +293,6 @@
         margin-left: 8px;
     }
 
-    /* 激活态时间高亮，保持字体几何不变，只提升亮度 */
     .timeline-row--active .time-label {
         color: #f7f7f7;
         opacity: 1;
@@ -228,7 +303,7 @@
         opacity: 0.85;
     }
 
-    /* ---------- 统一高对比文本系统 ---------- */
+    /* 内容块 */
     .entry-card {
         position: relative;
         display: inline-flex;
@@ -236,7 +311,7 @@
         align-items: flex-start;
         max-width: 32rem;
         width: 100%;
-        gap: 1rem;
+        gap: 0.8rem;
     }
 
     .entry-body {
@@ -247,14 +322,24 @@
         font-weight: 300;
         letter-spacing: 0.01em;
         transition: color 0.3s ease;
+        white-space: pre-wrap;
     }
 
     .timeline-row--active .entry-body {
         color: #f3f3f3;
     }
 
-    .text-entry {
-        white-space: pre-wrap;
+    .entry-location {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: #888;
+        opacity: 0.95;
+    }
+
+    .timeline-row--active .entry-location {
+        color: #bfbfbf;
     }
 
     .keydate-minimal {
@@ -310,7 +395,6 @@
         50%      { text-shadow: 0 0 16px rgba(255,255,255,0.35); }
     }
 
-    /* ---------- 图片液体缩放 + 文字对比 ---------- */
     .photo-frame {
         border-radius: 2px;
         overflow: hidden;
@@ -379,13 +463,14 @@
         flex-shrink: 0;
     }
 
-    /* ---------- 删除按钮 ---------- */
-    .btn-delete {
+    /* 删除 & 编辑按钮 */
+    .btn-delete,
+    .btn-edit {
         position: absolute;
         top: -10px;
         background: none;
         border: none;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         color: #444;
         cursor: pointer;
         padding: 0;
@@ -397,15 +482,14 @@
         z-index: 20;
     }
 
-    .timeline-row.even .btn-delete {
-        right: -30px;
-    }
+    .timeline-row.even .btn-delete { right: -30px; }
+    .timeline-row.odd .btn-delete { left: -30px; }
 
-    .timeline-row.odd .btn-delete {
-        left: -30px;
-    }
+    .timeline-row.even .btn-edit { right: -60px; }
+    .timeline-row.odd .btn-edit { left: -60px; }
 
-    .entry-card:hover .btn-delete {
+    .entry-card:hover .btn-delete,
+    .entry-card:hover .btn-edit {
         opacity: 1;
         color: #888;
     }
@@ -413,7 +497,6 @@
     .timeline-row.even .entry-card:hover .btn-delete {
         transform: translateX(6px) rotate(90deg);
     }
-
     .timeline-row.odd .entry-card:hover .btn-delete {
         transform: translateX(-6px) rotate(90deg);
     }
@@ -422,7 +505,11 @@
         color: var(--neon-pink) !important;
     }
 
-    /* ---------- Dock 控制条 ---------- */
+    .btn-edit:hover {
+        color: #ffffff !important;
+    }
+
+    /* Dock 控制条 */
     .dock {
         position: fixed;
         bottom: 3rem;
@@ -475,7 +562,7 @@
         filter: drop-shadow(0 0 9px var(--neon-pink));
     }
 
-    /* ---------- Modal ---------- */
+    /* Modal */
     .modal-backdrop {
         position: fixed;
         inset: 0;
@@ -588,7 +675,56 @@
         transform: translateY(-1px);
     }
 
-    /* ---------- 响应式 ---------- */
+    /* 年份电梯导航 */
+    .year-nav {
+        position: fixed;
+        right: 3rem;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        z-index: 180;
+        pointer-events: auto;
+    }
+
+    .year-pill {
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(5,5,5,0.7);
+        color: #777;
+        padding: 0.25rem 0.7rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .year-pill--active {
+        color: #ffffff;
+        border-color: rgba(255,255,255,0.4);
+        background: #101010;
+        transform: translateX(2px);
+        box-shadow: 0 0 18px rgba(0,0,0,0.8);
+    }
+
+    #scroll-sentinel {
+        height: 1px;
+        margin-top: 60px;
+    }
+
+    @media (max-width: 1024px) {
+        .year-nav {
+            position: static;
+            flex-direction: row;
+            justify-content: flex-start;
+            transform: none;
+            margin: 0 0 1.2rem;
+        }
+    }
+
     @media (max-width: 768px) {
         main {
             padding: 140px 1.5rem 160px;
@@ -628,7 +764,8 @@
             opacity: 0.8;
         }
 
-        .btn-delete {
+        .btn-delete,
+        .btn-edit {
             left: auto !important;
             right: 0 !important;
             top: -25px;
@@ -644,6 +781,11 @@
         dialog {
             padding: 2.2rem 1.8rem;
             max-height: calc(100vh - 2rem);
+        }
+
+        .timeline-controls {
+            flex-direction: column;
+            align-items: stretch;
         }
     }
 
@@ -661,97 +803,46 @@
 <canvas id="hearts-canvas" style="position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:995;"></canvas>
 
 <main aria-label="Shared timeline">
+    <div class="timeline-controls">
+        <form class="timeline-search" id="timeline-search-form" method="get" action="{{ url_for('index') }}">
+            <input
+                type="text"
+                name="q"
+                class="timeline-search-input"
+                value="{{ search_query or '' }}"
+                placeholder="Search memories..."
+            >
+            {% if filter_type %}
+                <input type="hidden" name="type" value="{{ filter_type }}">
+            {% endif %}
+        </form>
+
+        <div class="timeline-filters" role="tablist" aria-label="Filter by type">
+            {% set ft = (filter_type or 'all') %}
+            <button type="button" class="filter-pill {{ 'is-active' if ft == 'all' }}" data-filter="all">All</button>
+            <button type="button" class="filter-pill {{ 'is-active' if ft == 'entry' }}" data-filter="entry">Text</button>
+            <button type="button" class="filter-pill {{ 'is-active' if ft == 'photo' }}" data-filter="photo">Photo</button>
+            <button type="button" class="filter-pill {{ 'is-active' if ft == 'keydate' }}" data-filter="keydate">Date</button>
+        </div>
+    </div>
+
+    {% if years %}
+    <nav class="year-nav" aria-label="Jump by year">
+        {% for y in years %}
+            <button type="button" class="year-pill" data-year="{{ y }}">{{ y }}</button>
+        {% endfor %}
+    </nav>
+    {% endif %}
+
     <section class="timeline-grid" aria-live="polite">
         <div class="timeline-axis" aria-hidden="true"></div>
 
-        {% for node in timeline %}
-            <article
-                class="timeline-row {{ 'odd' if loop.index is odd else 'even' }}"
-                data-index="{{ loop.index }}"
-                aria-label="Memory at {{ node.timestamp.strftime('%Y-%m-%d %H:%M') }}"
-            >
-                <header class="time-wrapper">
-                    <div class="time-label">
-                        {{ node.timestamp.strftime('%Y.%m.%d') }}
-                        <span>{{ node.timestamp.strftime('%H:%M') }}</span>
-                    </div>
-                </header>
-
-                <div class="axis-cell">
-                    <button
-                        class="axis-dot"
-                        type="button"
-                        data-magnetic
-                        data-magnetic-strength="0.35"
-                        aria-label="Focus memory at {{ node.timestamp.strftime('%Y-%m-%d %H:%M') }}"
-                    ></button>
-                </div>
-
-                <div class="content-wrapper">
-                    <div class="entry-card" data-magnetic data-magnetic-strength="0.18">
-                        <form
-                            action="/delete/{{ node.type }}/{{ node.item.id }}"
-                            method="post"
-                            onsubmit="return confirm('Delete?')"
-                            aria-label="Archive this memory"
-                        >
-                            <button class="btn-delete" type="submit" title="Archive Memory">×</button>
-                        </form>
-
-                        {% if node.type == 'entry' %}
-                            <div class="entry-body text-entry">
-                                {{ node.item.content }}
-                            </div>
-
-                        {% elif node.type == 'photo' %}
-                            <div class="photo-frame">
-                                <img
-                                    src="{{ url_for('uploaded_file', filename=node.item.filename) }}"
-                                    loading="lazy"
-                                    alt="{{ node.item.caption or 'Memory photo' }}"
-                                >
-                            </div>
-                            {% if node.item.caption %}
-                                <div class="photo-caption">
-                                    {{ node.item.caption }}
-                                </div>
-                            {% endif %}
-
-                        {% elif node.type == 'keydate' %}
-                            {% set diff, state = get_days_diff(node.item.date) %}
-                            <div class="keydate-minimal">
-                                <div class="kd-title">
-                                    {{ node.item.title }}
-                                </div>
-                                <div
-                                    class="kd-number"
-                                    style="{{ 'color:var(--neon-pink);' if state == 'today' }}"
-                                >
-                                    {% if state == 'today' %}
-                                        NOW
-                                    {% else %}
-                                        {{ diff }}
-                                    {% endif %}
-                                </div>
-                                <div class="kd-meta">
-                                    {% if state == 'past' %}
-                                        days since
-                                    {% elif state == 'future' %}
-                                        days left
-                                    {% else %}
-                                        happening now
-                                    {% endif %}
-                                </div>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </article>
-        {% endfor %}
+        {% include "_timeline_rows.html" %}
     </section>
+
+    <div id="scroll-sentinel" aria-hidden="true"></div>
 </main>
 
-<!-- Dock -->
 <div class="dock" aria-label="Memory controls">
     <div class="dock-inner">
         <button type="button" onclick="openModal('entry')" class="dock-btn" data-magnetic data-magnetic-strength="0.22">TEXT</button>
@@ -761,7 +852,6 @@
     </div>
 </div>
 
-<!-- Modal -->
 <div id="modal-backdrop" class="modal-backdrop"></div>
 <dialog id="input-modal" aria-modal="true" aria-labelledby="modal-title">
     <button class="modal-close" type="button" onclick="closeModal()" aria-label="Close">&times;</button>
@@ -797,7 +887,7 @@
 
     let lenisInstance = null;
 
-    /* --------- 1. Cursor --------- */
+    /* 1. Cursor glow */
     const cursorGlow = document.getElementById('cursor-glow');
     let mouseX = window.innerWidth / 2;
     let mouseY = window.innerHeight / 2;
@@ -819,7 +909,7 @@
         })();
     }
 
-    /* --------- 2. Hearts Canvas --------- */
+    /* 2. Hearts Canvas */
     const canvas = document.getElementById('hearts-canvas');
     const ctx = canvas.getContext('2d');
     let hearts = [];
@@ -853,6 +943,7 @@
             animateHearts();
         }
     }
+    window.triggerHearts = triggerHearts;
 
     function animateHearts() {
         if (hearts.length === 0) {
@@ -879,15 +970,14 @@
         });
         requestAnimationFrame(animateHearts);
     }
-    window.triggerHearts = triggerHearts;
 
-    /* --------- 3. Modal + Scroll Lock --------- */
+    /* 3. Modal (create & edit) */
     const modal = document.getElementById('input-modal');
     const backdrop = document.getElementById('modal-backdrop');
     const dateInput = document.getElementById('date-input');
     const form = document.getElementById('modal-form');
     const fields = document.getElementById('dynamic-fields');
-    const title = document.getElementById('modal-title');
+    const titleEl = document.getElementById('modal-title');
 
     function syncNowToDateInput() {
         if (!dateInput) return;
@@ -911,20 +1001,26 @@
 
         if (type === 'entry') {
             form.action = "{{ url_for('add_entry') }}";
-            title.innerText = 'THOUGHT';
+            titleEl.innerText = 'THOUGHT';
             fields.innerHTML = `
                 <textarea
                     name="content"
                     rows="5"
                     class="modal-field"
-                    placeholder="..."
+                    placeholder="."
                     style="resize:vertical;"
                     required
                 ></textarea>
+                <input
+                    name="location"
+                    placeholder="Where (optional)"
+                    class="modal-field"
+                    style="margin-top:0.4rem;"
+                >
             `;
         } else if (type === 'keydate') {
             form.action = "{{ url_for('add_keydate') }}";
-            title.innerText = 'MEMORY';
+            titleEl.innerText = 'MEMORY';
             fields.innerHTML = `
                 <input
                     name="title"
@@ -933,6 +1029,12 @@
                     required
                 >
                 <input type="hidden" name="date" id="kd-hidden">
+                <input
+                    name="location"
+                    placeholder="Where (optional)"
+                    class="modal-field"
+                    style="margin-top:0.4rem;"
+                >
             `;
             form.onsubmit = function () {
                 const hidden = document.getElementById('kd-hidden');
@@ -940,7 +1042,7 @@
             };
         } else if (type === 'photo') {
             form.action = "{{ url_for('add_photo') }}";
-            title.innerText = 'VISUAL';
+            titleEl.innerText = 'VISUAL';
             fields.innerHTML = `
                 <input
                     type="file"
@@ -955,7 +1057,113 @@
                     class="modal-field"
                     style="margin-top:6px"
                 >
+                <input
+                    name="location"
+                    placeholder="Where (optional)"
+                    class="modal-field"
+                    style="margin-top:0.4rem;"
+                >
             `;
+        }
+    }
+    window.openModal = openModal;
+
+    function openEditModal(button) {
+        if (!modal) return;
+        const type = button.dataset.editType;
+        const id = button.dataset.editId;
+        const timestamp = button.dataset.editTimestamp || '';
+        const location = button.dataset.editLocation || '';
+
+        fields.innerHTML = '';
+        form.action = '';
+        form.onsubmit = null;
+
+        if (timestamp && dateInput) {
+            dateInput.value = timestamp;
+        } else {
+            syncNowToDateInput();
+        }
+
+        backdrop.classList.add('active');
+        modal.showModal();
+        document.documentElement.classList.add('modal-open');
+        if (lenisInstance) lenisInstance.stop();
+
+        titleEl.innerText = 'EDIT';
+        form.action = `/edit/${type}/${id}`;
+
+        if (type === 'entry') {
+            fields.innerHTML = `
+                <textarea
+                    name="content"
+                    rows="5"
+                    class="modal-field"
+                    style="resize:vertical;"
+                    required
+                ></textarea>
+                <input
+                    name="location"
+                    placeholder="Where (optional)"
+                    class="modal-field"
+                    style="margin-top:0.4rem;"
+                >
+            `;
+            const textarea = fields.querySelector('textarea[name="content"]');
+            const locInput = fields.querySelector('input[name="location"]');
+            textarea.value = button.dataset.editContent || '';
+            locInput.value = location || '';
+        } else if (type === 'keydate') {
+            fields.innerHTML = `
+                <input
+                    name="title"
+                    class="modal-field"
+                    required
+                >
+                <input type="hidden" name="date" id="kd-hidden">
+                <input
+                    name="location"
+                    placeholder="Where (optional)"
+                    class="modal-field"
+                    style="margin-top:0.4rem;"
+                >
+            `;
+            const titleInput = fields.querySelector('input[name="title"]');
+            const locInput = fields.querySelector('input[name="location"]');
+            const hidden = fields.querySelector('#kd-hidden');
+            titleInput.value = button.dataset.editTitle || '';
+            locInput.value = location || '';
+            if (hidden && dateInput) hidden.value = dateInput.value;
+
+            form.onsubmit = function () {
+                const hidden = document.getElementById('kd-hidden');
+                if (hidden && dateInput) hidden.value = dateInput.value;
+            };
+        } else if (type === 'photo') {
+            fields.innerHTML = `
+                <input
+                    type="file"
+                    name="photo"
+                    class="modal-field"
+                    accept="image/*"
+                >
+                <input
+                    name="caption"
+                    placeholder="Caption"
+                    class="modal-field"
+                    style="margin-top:6px"
+                >
+                <input
+                    name="location"
+                    placeholder="Where (optional)"
+                    class="modal-field"
+                    style="margin-top:0.4rem;"
+                >
+            `;
+            const captionInput = fields.querySelector('input[name="caption"]');
+            const locInput = fields.querySelector('input[name="location"]');
+            captionInput.value = button.dataset.editCaption || '';
+            locInput.value = location || '';
         }
     }
 
@@ -966,12 +1174,11 @@
         document.documentElement.classList.remove('modal-open');
         if (lenisInstance) lenisInstance.start();
     }
-
-    if (backdrop) backdrop.addEventListener('click', closeModal);
-    window.openModal = openModal;
     window.closeModal = closeModal;
 
-    /* --------- 4. Lenis 平滑滚动 --------- */
+    if (backdrop) backdrop.addEventListener('click', closeModal);
+
+    /* 4. Lenis 平滑滚动 */
     if (!prefersReducedMotion && typeof Lenis !== 'undefined') {
         const lenis = new Lenis({
             lerp: 0.12,
@@ -988,24 +1195,21 @@
         requestAnimationFrame(raf);
     }
 
-    /* --------- 5. GSAP Reveal & 视差，去掉易抖动属性 --------- */
-    if (!prefersReducedMotion && typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
-        gsap.registerPlugin(ScrollTrigger);
+    /* 5. GSAP Reveal & 视差 */
+    function enhanceTimelineRows(root) {
+        const scope = root || document;
 
-        if (lenisInstance) {
-            lenisInstance.on('scroll', ScrollTrigger.update);
-            ScrollTrigger.scrollerProxy(document.body, {
-                scrollTop(value) {
-                    return arguments.length ? lenisInstance.scrollTo(value) : window.scrollY || window.pageYOffset;
-                },
-                getBoundingClientRect() {
-                    return { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight };
-                }
+        if (prefersReducedMotion || typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
+            scope.querySelectorAll('.time-wrapper, .content-wrapper').forEach(el => {
+                el.style.opacity = 1;
+                el.style.transform = 'none';
             });
+            return;
         }
 
-        const rows = document.querySelectorAll('.timeline-row');
+        const rows = scope.querySelectorAll('.timeline-row:not([data-animated])');
         rows.forEach((row) => {
+            row.dataset.animated = '1';
             const timeCol = row.querySelector('.time-wrapper');
             const contentCol = row.querySelector('.content-wrapper');
             const dot = row.querySelector('.axis-dot');
@@ -1051,6 +1255,24 @@
                 });
             }
         });
+    }
+
+    if (!prefersReducedMotion && typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+        gsap.registerPlugin(ScrollTrigger);
+
+        if (lenisInstance) {
+            lenisInstance.on('scroll', ScrollTrigger.update);
+            ScrollTrigger.scrollerProxy(document.body, {
+                scrollTop(value) {
+                    return arguments.length ? lenisInstance.scrollTo(value) : window.scrollY || window.pageYOffset;
+                },
+                getBoundingClientRect() {
+                    return { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight };
+                }
+            });
+        }
+
+        enhanceTimelineRows(document);
 
         ScrollTrigger.addEventListener('refresh', () => {
             if (lenisInstance && typeof lenisInstance.update === 'function') {
@@ -1065,28 +1287,42 @@
         });
     }
 
-    /* --------- 6. 高亮逻辑：保证鼠标在文本 / 图片 / 纪念日 / 红点处都能点亮时间 --------- */
-    const rows = document.querySelectorAll('.timeline-row');
-    rows.forEach((row) => {
-        const interactiveParts = row.querySelectorAll('.entry-card, .axis-dot, .time-wrapper');
+    /* 6. 高亮逻辑：用事件委托 + 单行激活，避免「时间重叠」 */
+    const timelineGrid = document.querySelector('.timeline-grid');
 
-        interactiveParts.forEach((el) => {
-            el.addEventListener('mouseenter', () => {
-                row.classList.add('timeline-row--active');
-                if (cursorGlow) cursorGlow.classList.add('cursor-glow--active');
-            });
-            el.addEventListener('mouseleave', () => {
-                row.classList.remove('timeline-row--active');
-                if (cursorGlow) cursorGlow.classList.remove('cursor-glow--active');
-            });
+    function setActiveRow(row) {
+        document.querySelectorAll('.timeline-row.timeline-row--active').forEach(r => {
+            if (r !== row) r.classList.remove('timeline-row--active');
         });
-    });
+        if (row) row.classList.add('timeline-row--active');
+    }
 
-    /* --------- 7. 磁性效果 ---------- */
-    function initMagneticElements() {
+    if (timelineGrid) {
+        timelineGrid.addEventListener('mouseover', (e) => {
+            const row = e.target.closest('.timeline-row');
+            if (!row || !timelineGrid.contains(row)) return;
+            setActiveRow(row);
+            if (cursorGlow) cursorGlow.classList.add('cursor-glow--active');
+        });
+
+        timelineGrid.addEventListener('mouseout', (e) => {
+            const related = e.relatedTarget && e.relatedTarget.closest
+                ? e.relatedTarget.closest('.timeline-row')
+                : null;
+            if (!related) {
+                setActiveRow(null);
+                if (cursorGlow) cursorGlow.classList.remove('cursor-glow--active');
+            }
+        });
+    }
+
+    /* 7. 磁性效果（支持动态追加元素） */
+    function initMagneticElements(root) {
         if (typeof gsap === 'undefined') return;
-        const magneticItems = document.querySelectorAll('[data-magnetic]');
+        const scope = root || document;
+        const magneticItems = scope.querySelectorAll('[data-magnetic]:not([data-magnetic-initialized])');
         magneticItems.forEach((item) => {
+            item.dataset.magneticInitialized = '1';
             const strength = parseFloat(item.dataset.magneticStrength || '0.25');
             let bounds;
 
@@ -1124,14 +1360,163 @@
             });
         });
     }
-    initMagneticElements();
+    initMagneticElements(document);
 
-    // 让 dock / 轴也触发 cursor glow
-    if (cursorGlow) {
-        document.querySelectorAll('.dock-btn, .axis-dot').forEach(el => {
-            el.addEventListener('mouseenter', () => cursorGlow.classList.add('cursor-glow--active'));
-            el.addEventListener('mouseleave', () => cursorGlow.classList.remove('cursor-glow--active'));
+    /* 8. 搜索 & 类型过滤交互（通过 URL 参数刷新） */
+    const searchForm = document.getElementById('timeline-search-form');
+    if (searchForm) {
+        searchForm.addEventListener('submit', (e) => {
+            // 默认表单提交即可，这里只清理 page 参数
+            e.preventDefault();
+            const formData = new FormData(searchForm);
+            const params = new URLSearchParams(window.location.search);
+            params.delete('page');
+            const q = (formData.get('q') || '').trim();
+            if (q) {
+                params.set('q', q);
+            } else {
+                params.delete('q');
+            }
+            const type = formData.get('type');
+            if (type && type !== 'all') {
+                params.set('type', type);
+            }
+            const qs = params.toString();
+            window.location.search = qs;
         });
+    }
+
+    document.querySelectorAll('.filter-pill').forEach((pill) => {
+        pill.addEventListener('click', () => {
+            const type = pill.dataset.filter;
+            const params = new URLSearchParams(window.location.search);
+            params.delete('page');
+            if (type === 'all') {
+                params.delete('type');
+            } else {
+                params.set('type', type);
+            }
+            const qInput = searchForm && searchForm.querySelector('input[name="q"]');
+            if (qInput && qInput.value.trim()) {
+                params.set('q', qInput.value.trim());
+            }
+            const qs = params.toString();
+            window.location.search = qs;
+        });
+    });
+
+    /* 9. 年份电梯导航：点击跳转 & 自动高亮当前年份 */
+    const yearButtons = document.querySelectorAll('.year-pill');
+
+    function scrollToRow(row) {
+        if (!row) return;
+        if (lenisInstance && typeof lenisInstance.scrollTo === 'function') {
+            lenisInstance.scrollTo(row, { offset: -160 });
+        } else {
+            const top = row.getBoundingClientRect().top + window.scrollY - 160;
+            window.scrollTo({ top, behavior: 'smooth' });
+        }
+    }
+
+    yearButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const targetYear = btn.dataset.year;
+            const targetRow = document.querySelector(`.timeline-row[data-year="${targetYear}"]`);
+            if (targetRow) scrollToRow(targetRow);
+        });
+    });
+
+    function setActiveYear(year) {
+        yearButtons.forEach((btn) => {
+            btn.classList.toggle('year-pill--active', btn.dataset.year === String(year));
+        });
+    }
+
+    if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+            let candidate = null;
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                const year = entry.target.dataset.year;
+                if (!candidate || entry.boundingClientRect.top < candidate.top) {
+                    candidate = { year, top: entry.boundingClientRect.top };
+                }
+            });
+            if (candidate && candidate.year) {
+                setActiveYear(candidate.year);
+            }
+        }, { threshold: 0.35 });
+
+        document.querySelectorAll('.timeline-row').forEach((row) => io.observe(row));
+    }
+
+    /* 10. 编辑按钮绑定 */
+    function bindEditButtons(root) {
+        const scope = root || document;
+        const editButtons = scope.querySelectorAll('.btn-edit:not([data-edit-bound])');
+        editButtons.forEach((btn) => {
+            btn.dataset.editBound = '1';
+            btn.addEventListener('click', () => openEditModal(btn));
+        });
+    }
+    bindEditButtons(document);
+
+    /* 11. 无限加载：滚动到底部自动请求 /api/timeline */
+    let currentPage = Number('{{ page|default(1)|int }}');
+    let loadingMore = false;
+    let hasMore = '{{ "true" if has_more else "false" }}' === 'true';
+
+    const sentinel = document.getElementById('scroll-sentinel');
+
+    async function loadNextPage() {
+        if (!hasMore || loadingMore) return;
+        loadingMore = true;
+
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const nextPage = currentPage + 1;
+            params.set('page', nextPage);
+            const res = await fetch(`/api/timeline?${params.toString()}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.html) {
+                const temp = document.createElement('div');
+                temp.innerHTML = data.html;
+                const newRows = temp.querySelectorAll('.timeline-row');
+                const grid = document.querySelector('.timeline-grid');
+                newRows.forEach((row) => grid.appendChild(row));
+
+                bindEditButtons(temp);
+                initMagneticElements(temp);
+                enhanceTimelineRows(temp);
+
+                if (typeof ScrollTrigger !== 'undefined') {
+                    ScrollTrigger.refresh();
+                }
+            }
+            currentPage = nextPage;
+            hasMore = !!data.has_more;
+            if (!hasMore && sentinel) {
+                sentinel.remove();
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            loadingMore = false;
+        }
+    }
+
+    if (sentinel && hasMore && 'IntersectionObserver' in window) {
+        const ioMore = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    loadNextPage();
+                }
+            });
+        }, { rootMargin: '0px 0px 300px 0px' });
+        ioMore.observe(sentinel);
     }
 </script>
 {% endblock %}

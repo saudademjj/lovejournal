@@ -2,7 +2,7 @@
 {% block content %}
 <style>
     main {
-        max-width: 960px;
+        max-width: 1120px;
         margin: 0 auto;
         padding: 180px 2rem 160px;
         position: relative;
@@ -37,30 +37,30 @@
         .cursor-glow { display: none; }
     }
 
-    /* ---------- 纪念日卡片列表 ---------- */
+    /* 网格大方块布局 */
     .anniv-list {
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
         gap: 1.8rem;
     }
 
     .anniv-card {
         position: relative;
-        display: grid;
-        grid-template-columns: 70px minmax(0, 1fr);
-        gap: 2.2rem;
-        padding: 1.8rem 2.2rem;
-        border-radius: 16px;
-        border: 1px solid rgba(255,255,255,0.1);
-        background: radial-gradient(circle at 0% 0%, rgba(255,255,255,0.06), #050505 55%);
+        display: flex;
+        flex-direction: column;
+        padding: 1.6rem 1.6rem 1.4rem;
+        border-radius: 18px;
+        background:
+            radial-gradient(circle at 0% 0%, rgba(255,255,255,0.08), #050505 62%);
         box-shadow: 0 26px 60px rgba(0,0,0,0.85);
         overflow: hidden;
         cursor: default;
         transition:
             transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
             box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-            border-color 0.4s ease,
-            background 0.6s ease;
+            background 0.6s ease,
+            opacity 0.35s ease;
+        min-height: 220px;
     }
 
     .anniv-card::before {
@@ -68,8 +68,8 @@
         position: absolute;
         inset: 0;
         background:
-            radial-gradient(circle at 10% 0%, rgba(255,255,255,0.14), transparent 50%),
-            radial-gradient(circle at 90% 100%, rgba(255,255,255,0.08), transparent 60%);
+            radial-gradient(circle at 10% 0%, rgba(255,255,255,0.18), transparent 50%),
+            radial-gradient(circle at 90% 100%, rgba(255,255,255,0.1), transparent 60%);
         mix-blend-mode: soft-light;
         opacity: 0;
         transition: opacity 0.7s ease;
@@ -77,69 +77,66 @@
     }
 
     .anniv-card:hover {
-        transform: translateY(-4px);
+        transform: translateY(-6px);
         box-shadow: 0 40px 100px rgba(0,0,0,0.95);
-        border-color: rgba(255,255,255,0.3);
     }
 
     .anniv-card:hover::before {
         opacity: 1;
     }
 
-    /* 左侧竖排日期 */
-    .anniv-date {
+    .anniv-top {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        writing-mode: vertical-rl;
-        text-orientation: mixed;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1.2rem;
+        margin-bottom: 1.2rem;
+    }
+
+    .anniv-date {
         font-family: 'JetBrains Mono', monospace;
-        font-size: 0.9rem;
-        letter-spacing: 0.25em;
+        font-size: 0.75rem;
+        letter-spacing: 0.22em;
         text-transform: uppercase;
         color: #f0f0f0;
+        opacity: 0.9;
     }
 
     .anniv-date-main {
-        font-size: 1.1rem;
-        letter-spacing: 0.28em;
+        font-size: 0.85rem;
+        letter-spacing: 0.26em;
     }
 
     .anniv-date-time {
-        margin-top: 0.7rem;
-        font-size: 0.7rem;
+        margin-top: 0.35rem;
+        font-size: 0.65rem;
         opacity: 0.75;
-    }
-
-    /* 右侧信息 */
-    .anniv-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 0.6rem;
-        justify-content: center;
-    }
-
-    .anniv-title {
-        font-family: 'Space Grotesk', sans-serif;
-        font-size: 1.3rem;
-        letter-spacing: 0.02em;
-        color: #f5f5f5;
-    }
-
-    .anniv-subline {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.75rem;
-        letter-spacing: 0.2em;
-        text-transform: uppercase;
-        color: #b3b3b3;
     }
 
     .anniv-days {
         font-family: 'Space Grotesk', sans-serif;
-        font-size: 2.6rem;
+        font-size: 2.7rem;
         font-weight: 700;
         letter-spacing: 0.08em;
         color: var(--neon-pink);
+        text-align: right;
+    }
+
+    .anniv-subline {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #b3b3b3;
+        text-align: right;
+    }
+
+    .anniv-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.2rem;
+        letter-spacing: 0.02em;
+        color: #f5f5f5;
+        margin-bottom: 0.5rem;
     }
 
     .anniv-tagline {
@@ -147,6 +144,10 @@
         font-size: 0.9rem;
         color: #e0e0e0;
         opacity: 0.9;
+    }
+
+    .anniv-meta-block {
+        margin-top: auto;
     }
 
     /* Dock */
@@ -197,7 +198,7 @@
         filter: drop-shadow(0 0 9px var(--neon-pink));
     }
 
-    /* Modal（只用于新增纪念日） */
+    /* Modal（新增纪念日） */
     .modal-backdrop {
         position: fixed;
         inset: 0;
@@ -298,17 +299,6 @@
     @media (max-width: 768px) {
         main { padding: 140px 1.5rem 140px; }
 
-        .anniv-card {
-            grid-template-columns: 52px minmax(0,1fr);
-            padding: 1.4rem 1.6rem;
-        }
-        .anniv-date {
-            font-size: 0.8rem;
-        }
-        .anniv-days {
-            font-size: 2.2rem;
-        }
-
         dialog {
             padding: 2.2rem 1.8rem;
             max-height: calc(100vh - 2rem);
@@ -332,9 +322,13 @@
     <section class="anniv-list">
         {% for k in dates %}
             {% set diff, state = get_days_diff(k.date) %}
-            <article class="anniv-card" data-magnetic data-magnetic-strength="0.18">
-                <div class="anniv-date">
-                    <div>
+            <article
+                class="anniv-card"
+                data-magnetic
+                data-magnetic-strength="0.18"
+            >
+                <div class="anniv-top">
+                    <div class="anniv-date">
                         <div class="anniv-date-main">
                             {{ k.date.strftime('%Y') }}·{{ k.date.strftime('%m') }}·{{ k.date.strftime('%d') }}
                         </div>
@@ -342,31 +336,30 @@
                             {{ k.date.strftime('%H:%M') }}
                         </div>
                     </div>
+                    <div style="text-align:right;">
+                        <div class="anniv-days">
+                            {% if state == 'today' %}
+                                0
+                            {% else %}
+                                {{ diff }}
+                            {% endif %}
+                        </div>
+                        <div class="anniv-subline">
+                            {% if state == 'past' %}
+                                DAYS SINCE
+                            {% elif state == 'future' %}
+                                DAYS LEFT
+                            {% else %}
+                                TODAY
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
 
-                <div class="anniv-meta">
-                    <div class="anniv-subline">
-                        {% if state == 'past' %}
-                            DAYS SINCE
-                        {% elif state == 'future' %}
-                            DAYS LEFT
-                        {% else %}
-                            TODAY
-                        {% endif %}
-                    </div>
-
-                    <div class="anniv-days">
-                        {% if state == 'today' %}
-                            0
-                        {% else %}
-                            {{ diff }}
-                        {% endif %}
-                    </div>
-
+                <div class="anniv-meta-block">
                     <div class="anniv-title">
                         {{ k.title }}
                     </div>
-
                     <div class="anniv-tagline">
                         {% if state == 'past' %}
                             我们已经一起走过了这些天。
@@ -418,6 +411,12 @@
             required
             style="margin-top:1rem;"
         >
+        <input
+            name="location"
+            placeholder="Where (optional)"
+            class="modal-field"
+            style="margin-top:0.4rem;"
+        >
         <input type="hidden" name="date" id="kd-hidden">
 
         <button type="submit" class="modal-save-btn">SAVE</button>
@@ -426,7 +425,6 @@
 
 <script src="https://unpkg.com/@studio-freight/lenis@1.1.18/bundled/lenis.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 
 <script>
     const prefersReducedMotion =
@@ -488,6 +486,8 @@
             animateHearts();
         }
     }
+    window.triggerHearts = triggerHearts;
+
     function animateHearts() {
         if (hearts.length === 0) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -513,9 +513,7 @@
         });
         requestAnimationFrame(animateHearts);
     }
-    window.triggerHearts = triggerHearts;
 
-    // Modal
     const modal = document.getElementById('input-modal');
     const backdrop = document.getElementById('modal-backdrop');
     const dateInput = document.getElementById('date-input');
@@ -554,7 +552,6 @@
         form.action = "{{ url_for('add_keydate') }}";
     };
 
-    // Lenis
     if (!prefersReducedMotion && typeof Lenis !== 'undefined') {
         const lenis = new Lenis({
             lerp: 0.12,
@@ -571,7 +568,6 @@
         requestAnimationFrame(raf);
     }
 
-    // GSAP reveal：卡片淡入
     if (!prefersReducedMotion && typeof gsap !== 'undefined') {
         const cards = document.querySelectorAll('.anniv-card');
         cards.forEach((card, index) => {
@@ -593,7 +589,6 @@
         });
     }
 
-    // 磁性
     function initMagneticElements() {
         if (typeof gsap === 'undefined') return;
         const magneticItems = document.querySelectorAll('[data-magnetic]');

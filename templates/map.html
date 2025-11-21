@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 120px 2rem 80px;
+        position: relative;
+        z-index: 2;
+    }
+
+    #map {
+        width: 100%;
+        height: calc(100vh - 180px);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.9);
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .map-legend {
+        position: absolute;
+        top: 140px;
+        left: 2.8rem;
+        z-index: 10;
+        padding: 0.6rem 1rem;
+        border-radius: 999px;
+        background: rgba(5,5,5,0.8);
+        border: 1px solid rgba(255,255,255,0.08);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+    }
+
+    .map-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+    .map-dot.entry { background: #ffffff; }
+    .map-dot.photo { background: var(--neon-blue); }
+    .map-dot.keydate { background: var(--neon-pink); }
+
+    @media (max-width: 768px) {
+        main { padding: 120px 1.2rem 60px; }
+        #map { height: calc(100vh - 160px); }
+        .map-legend {
+            left: 1.4rem;
+            right: 1.4rem;
+            justify-content: center;
+        }
+    }
+</style>
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-sA+4J8zYia7gGkGEXCkLBXjg5eQofEoN1A9p2Jlim0c="
+  crossorigin=""
+/>
+
+<div class="map-legend">
+    <span class="map-dot entry"></span> TEXT
+    <span class="map-dot photo"></span> PHOTO
+    <span class="map-dot keydate"></span> DATE
+</div>
+
+<main aria-label="Map of memories">
+    <div id="map"></div>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-o9N1j7kGStb6g+jV+U0qYV7zKpVdGd2G3Zi+3kZ1xP8="
+        crossorigin=""></script>
+
+<script>
+    const map = L.map('map', {
+        center: [20, 0],
+        zoom: 2,
+        zoomControl: false
+    });
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '',
+    }).addTo(map);
+
+    const markersData = JSON.parse('{{ markers|tojson|safe }}' || '[]');
+
+    function markerColor(kind) {
+        if (kind === 'photo') return '#2b00ff';
+        if (kind === 'keydate') return '#ff003c';
+        return '#ffffff';
+    }
+
+    const markerGroup = L.layerGroup().addTo(map);
+
+    markersData.forEach(m => {
+        const color = markerColor(m.kind);
+        const marker = L.circleMarker([m.lat, m.lng], {
+            radius: 6,
+            weight: 1,
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.85
+        }).addTo(markerGroup);
+
+        let html = `
+            <div style="min-width:200px">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;letter-spacing:0.14em;text-transform:uppercase;color:#aaa;margin-bottom:4px;">
+                    ${m.timestamp}
+                </div>
+                <div style="font-family:'Inter',sans-serif;font-size:0.9rem;color:#fff;margin-bottom:4px;">
+                    ${m.snippet || ''}
+                </div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:#888;">
+                    ${m.label || ''}
+                </div>
+            </div>
+        `;
+        if (m.image) {
+            html = `
+                <div style="min-width:220px">
+                    <img src="${m.image}" style="width:100%;border-radius:8px;margin-bottom:6px;" />
+                    ${html}
+                </div>
+            `;
+        }
+        marker.bindPopup(html);
+    });
+
+    if (markersData.length) {
+        const bounds = markerGroup.getBounds();
+        map.fitBounds(bounds, { padding: [40, 40] });
+    }
+</script>
+{% endblock %}
