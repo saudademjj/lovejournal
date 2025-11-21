@@ -1,189 +1,648 @@
 {% extends "base.html" %}
 {% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+
 <style>
-    main {
-        max-width: 1000px; margin: 0 auto; padding: 180px 2rem 200px;
+    :root {
+        --timeline-max-width: 1000px;
+        --timeline-axis-width: 60px;
+        --timeline-gutter: 3rem;
+        --neon-pink: #ff0078;
     }
 
-    /* ---- Grid System Fix ---- */
+    /* Lenis 基础样式（平滑滚动库） */
+    html.lenis,
+    html.lenis body {
+        height: auto;
+    }
+    .lenis.lenis-smooth {
+        scroll-behavior: auto !important;
+    }
+    .lenis.lenis-smooth [data-lenis-prevent] {
+        overscroll-behavior: contain;
+    }
+    .lenis.lenis-stopped {
+        overflow: hidden;
+    }
+    .lenis.lenis-smooth iframe {
+        pointer-events: none;
+    }
+
+    /* ---- Global ---- */
+    main {
+        max-width: var(--timeline-max-width);
+        margin: 0 auto;
+        padding: 180px 2rem 200px;
+        position: relative;
+        z-index: 2;
+    }
+
+    /* ---- 自定义光标光晕 ---- */
+    .cursor-glow {
+        position: fixed;
+        width: 320px;
+        height: 320px;
+        background: radial-gradient(circle, rgba(255,255,255,0.035) 0%, rgba(0,0,0,0) 70%);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 1;
+        mix-blend-mode: screen;
+        transition:
+            opacity 0.5s ease,
+            transform 0.4s ease,
+            background 0.4s ease;
+    }
+
+    .cursor-glow.is-active {
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0) 70%);
+        transform: translate(-50%, -50%) scale(1.08);
+    }
+
+    @media (pointer: coarse) {
+        .cursor-glow {
+            opacity: 0;
+        }
+    }
+
+    /* ---- 时间轴 Grid + 连续中轴线 ---- */
     .timeline-grid {
         display: grid;
-        /* 固定三列：内容(1fr) - 中轴(60px) - 内容(1fr) */
-        grid-template-columns: 1fr 60px 1fr;
-        row-gap: 0;
+        grid-template-columns: minmax(0, 1fr) var(--timeline-axis-width) minmax(0, 1fr);
+        width: 100%;
+        position: relative;
+    }
+
+    /* 一条真正贯穿全局的中轴线 */
+    .timeline-grid::before,
+    .timeline-grid::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 1px;
+        pointer-events: none;
+    }
+
+    /* 基础线条 */
+    .timeline-grid::before {
+        background: rgba(255,255,255,0.06);
+        z-index: 0;
+    }
+
+    /* 线条上的流光呼吸 */
+    .timeline-grid::after {
+        background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.16), transparent);
+        opacity: 0.4;
+        animation: lineBreath 4s infinite ease-in-out;
+        z-index: 0;
     }
 
     .timeline-row {
         grid-column: 1 / -1;
         display: grid;
-        grid-template-columns: 1fr 60px 1fr; /* 继承父网格 */
-        align-items: flex-start;
+        grid-template-columns: subgrid;
         position: relative;
-        padding-bottom: 6rem;
     }
 
-    /* [Fix] 强制中轴容器永远在第2列，且内容居中 */
+    /* 中轴容器 */
     .axis-container {
-        grid-column: 2 !important;
-        position: relative; height: 100%;
-        display: flex; justify-content: center; /* 水平居中 */
-        width: 100%;
+        grid-column: 2;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 140px;
+        z-index: 1;
     }
 
-    /* 中轴线 */
-    .axis-line {
-        position: absolute; top: 0; bottom: 0; width: 1px;
-        background: rgba(255,255,255,0.08);
-        left: 50%; transform: translateX(-50%); /* 确保线在正中间 */
-    }
-
-    /* 圆点 */
+    /* 圆点：空心 + 中轴“穿线感” */
     .axis-dot {
-        width: 8px; height: 8px; background: white; border-radius: 50%;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.35);
+        background: transparent; /* 让背景线可透出 */
         position: sticky;
-        top: 300px; /* 视觉停留位置 */
-        margin-top: 6px; /* 初始顶部偏移，对齐文字 */
-        z-index: 10;
-        box-shadow: 0 0 0 4px var(--bg);
-        transition: transform 0.3s;
+        top: 50vh;
+        transform-origin: center;
+        z-index: 2;
+        box-shadow: 0 0 0 0 rgba(0,0,0,0);
+        backdrop-filter: blur(3px);
+        transition:
+            background 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+            border-color 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+            box-shadow 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+            transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+            opacity 0.4s ease;
     }
-    .timeline-row:hover .axis-dot { transform: scale(1.5); background: var(--text-main); }
 
-    /* ---- Content Layout Logic (Swapping Sides) ---- */
-    .content-wrapper { position: relative; width: 100%; }
-    .time-wrapper { width: 100%; }
+    .axis-dot::before {
+        content: '';
+        position: absolute;
+        inset: 3px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.45);
+        opacity: 0.9;
+        transition: opacity 0.4s ease;
+    }
 
-    /* 偶数行 (Even): 时间左，内容右 */
-    .timeline-row.even .content-wrapper { grid-column: 3; padding-left: 3rem; text-align: left; }
-    .timeline-row.even .time-wrapper { grid-column: 1; text-align: right; padding-right: 1.5rem; }
+    .timeline-row:hover .axis-dot {
+        background: rgba(255,255,255,0.06);
+        border-color: var(--neon-pink);
+        box-shadow: 0 0 25px rgba(255,0,120,0.45);
+        transform: scale(1.3);
+    }
 
-    /* 奇数行 (Odd): 内容左，时间右 */
-    .timeline-row.odd .content-wrapper { grid-column: 1; padding-right: 3rem; text-align: right; }
-    .timeline-row.odd .time-wrapper { grid-column: 3; text-align: left; padding-left: 1.5rem; }
+    .timeline-row:hover .axis-dot::before {
+        opacity: 1;
+    }
 
-    /* 修正奇数行内容内部元素的对齐，保持工业感 */
-    .timeline-row.odd .card-actions { right: auto; left: 0; }
+    /* ---- 时间 + 内容布局（严格对齐） ---- */
+    .time-wrapper,
+    .content-wrapper {
+        padding: 2.4rem 0 4.8rem;
+    }
 
-    /* ---- Components (Style Preserved) ---- */
+    .time-wrapper {
+        display: flex;
+        align-items: flex-start;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .content-wrapper {
+        display: flex;
+        align-items: flex-start;
+    }
+
+    /* 偶数行：时间在左，内容在右 */
+    .timeline-row.even .time-wrapper {
+        grid-column: 1;
+        justify-content: flex-end;
+        padding-right: var(--timeline-gutter);
+        text-align: right;
+    }
+
+    .timeline-row.even .content-wrapper {
+        grid-column: 3;
+        justify-content: flex-start;
+        padding-left: var(--timeline-gutter);
+        text-align: left;
+    }
+
+    /* 奇数行：内容在左，时间在右 */
+    .timeline-row.odd .time-wrapper {
+        grid-column: 3;
+        justify-content: flex-start;
+        padding-left: var(--timeline-gutter);
+        text-align: left;
+    }
+
+    .timeline-row.odd .content-wrapper {
+        grid-column: 1;
+        justify-content: flex-end;
+        padding-right: var(--timeline-gutter);
+        text-align: right;
+    }
+
     .time-label {
-        font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #555;
-        margin-top: 2px; transition: 0.3s;
+        font-size: 0.75rem;
+        color: #444;
+        letter-spacing: 1px;
+        white-space: nowrap;
+        transition: color 0.3s ease, opacity 0.3s ease;
+        opacity: 0.9;
     }
-    .timeline-row:hover .time-label { color: white; letter-spacing: 1px; }
 
+    .time-label span {
+        opacity: 0.5;
+        font-size: 0.65rem;
+        margin-left: 6px;
+    }
+
+    .timeline-row:hover .time-label {
+        color: #fff;
+        opacity: 1;
+    }
+
+    /* ---- 统一的文本系统：记录文本 & 纪念日文本 ---- */
     .entry-card {
-        position: relative; display: inline-block;
-        max-width: 90%;
+        position: relative;
+        display: inline-block;
+        max-width: 32rem;
+        width: 100%;
+        font-family: 'Inter', sans-serif;
     }
 
-    .photo-frame {
-        overflow: hidden; border-radius: 4px; margin-bottom: 1rem;
-        border: 1px solid rgba(255,255,255,0.1);
-        transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+    .text-entry,
+    .keydate-minimal .kd-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 1rem;
+        line-height: 1.7;
+        color: #bbb;
+        font-weight: 300;
+        letter-spacing: 0.01em;
     }
-    .photo-frame img { display: block; width: 100%; height: auto; filter: grayscale(20%); transition: 0.5s; }
-    .entry-card:hover .photo-frame { transform: scale(1.02); border-color: white; }
-    .entry-card:hover img { filter: grayscale(0%); }
 
     .text-entry {
-        font-family: 'Inter', sans-serif; font-size: 0.95rem; line-height: 1.6;
-        color: #ccc; background: transparent; border: none;
+        white-space: pre-wrap;
     }
 
-    .keydate-block {
-        border: 1px solid rgba(255,255,255,0.15); padding: 1.5rem 2rem;
-        display: inline-flex; flex-direction: column; gap: 0.5rem;
-        background: rgba(255,255,255,0.02); backdrop-filter: blur(10px);
-        min-width: 200px;
-    }
-    .keydate-days {
-        font-family: 'Space Grotesk'; font-size: 2.5rem; font-weight: 700; line-height: 1;
-        background: linear-gradient(to bottom right, #fff, #888);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .keydate-label { font-family: 'JetBrains Mono'; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: #555; }
-
-    .btn-delete {
-        position: absolute; top: -10px; right: -20px;
-        opacity: 0; color: #444; cursor: pointer; background: none; border: none; font-size: 1.2rem; transition: 0.2s;
-    }
-    .timeline-row.odd .btn-delete { right: auto; left: -20px; }
-    .entry-card:hover .btn-delete { opacity: 1; }
-    .btn-delete:hover { color: var(--neon-pink); }
-
-    /* Mobile */
-    @media (max-width: 768px) {
-        .timeline-grid { grid-template-columns: 20px 1fr; }
-        .timeline-row, .timeline-row.odd, .timeline-row.even { grid-template-columns: 20px 1fr; padding-bottom: 4rem; }
-        .axis-container { grid-column: 1 !important; justify-content: flex-start; width: auto; }
-        .axis-line { left: 9px; transform: none; } .axis-dot { margin-left: 5px; }
-
-        .content-wrapper, .timeline-row.odd .content-wrapper, .timeline-row.even .content-wrapper {
-            grid-column: 2; padding: 0 0 0 1.5rem; text-align: left;
-        }
-        .time-wrapper, .timeline-row.odd .time-wrapper, .timeline-row.even .time-wrapper {
-            grid-column: 2; text-align: left; padding-left: 1.5rem; margin-bottom: 0.5rem; display: block;
-        }
-        .entry-card { max-width: 100%; display: block; }
+    /* 照片容器：轻微“液态”缩放感 */
+    .photo-frame {
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+        border: 1px solid rgba(255,255,255,0.05);
+        transition:
+            border-color 0.4s ease,
+            transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+        will-change: transform, border-color;
     }
 
-    /* [Fix] Modal Specific Styles for Alignment */
-    .modal-form-content {
+    .photo-frame img {
+        display: block;
+        width: 100%;
+        filter: grayscale(30%) brightness(0.8);
+        transform: scale(1.02);
+        transform-origin: center;
+        transition:
+            transform 0.9s cubic-bezier(0.19, 1, 0.22, 1),
+            filter 0.9s cubic-bezier(0.19, 1, 0.22, 1);
+        will-change: transform, filter;
+    }
+
+    .timeline-row:hover .photo-frame img {
+        filter: grayscale(0%) brightness(1);
+        transform: scale(1.06);
+    }
+
+    .timeline-row:hover .photo-frame {
+        border-color: rgba(255,255,255,0.2);
+    }
+
+    .photo-caption {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        color: #555;
         display: flex;
-        flex-direction: column;
-        gap: 1.2rem;
+        align-items: center;
+        gap: 8px;
     }
+
+    .photo-caption::before {
+        content: '';
+        width: 15px;
+        height: 1px;
+        background: #333;
+        flex-shrink: 0;
+    }
+
+    /* ---- 纪念日 Key Date ---- */
+    .keydate-minimal {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15rem;
+    }
+
+    .timeline-row.odd .keydate-minimal {
+        align-items: flex-end;
+    }
+
+    .kd-title {
+        margin-bottom: 0.25rem;
+    }
+
+    .kd-number {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 4.5rem;
+        font-weight: 700;
+        line-height: 0.9;
+        color: #fff;
+        letter-spacing: -2px;
+        margin-bottom: 0.15rem;
+        animation: textBreath 6s ease-in-out infinite;
+    }
+
+    .kd-meta {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.65rem;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    /* ---- 删除按钮 ---- */
+    .btn-delete {
+        position: absolute;
+        top: -10px;
+        opacity: 0;
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        color: #333;
+        cursor: pointer;
+        transition:
+            color 0.25s ease,
+            opacity 0.25s ease,
+            transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 20;
+    }
+
+    .timeline-row.even .btn-delete {
+        right: -30px;
+    }
+
+    .timeline-row.odd .btn-delete {
+        left: -30px;
+    }
+
+    .entry-card:hover .btn-delete {
+        opacity: 1;
+        color: #666;
+    }
+
+    .timeline-row.even .entry-card:hover .btn-delete {
+        transform: translateX(5px) rotate(90deg);
+    }
+
+    .timeline-row.odd .entry-card:hover .btn-delete {
+        transform: translateX(-5px) rotate(90deg);
+    }
+
+    .btn-delete:hover {
+        color: var(--neon-pink) !important;
+    }
+
+    /* ---- 磁性元素通用层 ---- */
+    [data-magnetic] {
+    --mx: 0px;
+    --my: 0px;
+    transform: translate3d(var(--mx), var(--my), 0);
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+}
+
+
+    /* ---- Dock（底部控制条） ---- */
+    .timeline-dock {
+        position: fixed;
+        bottom: 3rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 200;
+    }
+
+    .timeline-dock-inner {
+        background: rgba(5,5,5,0.6);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 100px;
+        padding: 0.8rem 2rem;
+        display: flex;
+        gap: 2.5rem;
+        align-items: center;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.9);
+    }
+
+    .dock-btn {
+        background: none;
+        border: none;
+        color: #555;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 0.75rem;
+        cursor: pointer;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        position: relative;
+        transition:
+            color 0.3s ease,
+            text-shadow 0.3s ease;
+    }
+
+    .dock-btn:hover {
+        color: #fff;
+        text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+
+    .miss-you-btn {
+        color: var(--neon-pink);
+        font-size: 1.2rem;
+        padding: 0 0.5rem;
+        opacity: 0.85;
+    }
+
+    .miss-you-btn:hover {
+        filter: drop-shadow(0 0 8px var(--neon-pink));
+    }
+
+    /* ---- Modal ---- */
+    .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.8);
+        z-index: 998;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s ease;
+        backdrop-filter: blur(8px);
+    }
+
+    .modal-backdrop.active {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    dialog {
+        border: 1px solid #222;
+        background: #0a0a0a;
+        color: #fff;
+        transition: 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+        transform: translate(-50%, -40%) scale(0.95);
+        top: 50%;
+        left: 50%;
+        margin: 0;
+        position: fixed;
+        opacity: 0;
+    }
+
+    dialog[open] {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+
+    .modal-shell {
+        width: 90%;
+        max-width: 400px;
+        padding: 3rem;
+        border-radius: 12px;
+        box-shadow: 0 40px 80px #000;
+        position: relative;
+    }
+
+    .modal-close {
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        background: none;
+        border: none;
+        color: #444;
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+
+    .modal-title {
+        margin: 0 0 2rem;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 300;
+        font-size: 1.4rem;
+        letter-spacing: -1px;
+    }
+
     .modal-field {
         width: 100%;
-        background: #222;
-        border: 1px solid #333;
-        color: white;
-        padding: 12px;
+        background: #111;
+        border: 1px solid #222;
+        color: #fff;
+        padding: 14px;
         font-family: 'Inter', sans-serif;
-        box-sizing: border-box; /* 确保 padding 不撑破宽度 */
-        border-radius: 4px;
+        border-radius: 6px;
+        transition: border-color 0.3s ease, background 0.3s ease;
+        box-sizing: border-box;
     }
-    .modal-field:focus { outline: 1px solid white; border-color: white; }
+
+    .modal-field:focus {
+        border-color: #555;
+        outline: none;
+        background: #161616;
+    }
+
     .modal-save-btn {
         width: 100%;
-        background: white;
-        color: black;
+        background: #fff;
+        color: #000;
         border: none;
         padding: 14px;
         font-weight: 700;
         font-family: 'Space Grotesk', sans-serif;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 2px;
         cursor: pointer;
-        margin-top: 1rem;
+        margin-top: 1.5rem;
+        border-radius: 6px;
+        transition:
+            background 0.3s ease,
+            transform 0.25s ease,
+            box-shadow 0.25s ease;
     }
-    .modal-save-btn:hover { background: #ccc; }
 
-    #hearts-canvas { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:999; }
+    .modal-save-btn:hover {
+        background: #ccc;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+
+    /* ---- 动画 ---- */
+    @keyframes lineBreath {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.9; }
+    }
+
+    @keyframes textBreath {
+        0%, 100% { text-shadow: 0 0 0 rgba(255,255,255,0); }
+        50% { text-shadow: 0 0 18px rgba(255,255,255,0.35); }
+    }
+
+    /* ---- Mobile ---- */
+    @media (max-width: 768px) {
+        main {
+            padding: 140px 1.5rem 160px;
+        }
+
+        .timeline-grid {
+            grid-template-columns: 22px minmax(0, 1fr);
+        }
+
+        .timeline-grid::before,
+        .timeline-grid::after {
+            left: 11px;
+            transform: none;
+        }
+
+        .axis-container {
+            grid-column: 1;
+            justify-content: center;
+            min-height: 90px;
+        }
+
+        .axis-dot {
+            top: 32vh;
+        }
+
+        .time-wrapper,
+        .content-wrapper {
+            grid-column: 2 !important;
+            text-align: left !important;
+            padding: 0 0 1.4rem 1.4rem !important;
+        }
+
+        .time-wrapper {
+            padding-bottom: 0.4rem !important;
+            opacity: 0.8;
+        }
+
+        .btn-delete {
+            left: auto !important;
+            right: 0 !important;
+            top: -25px;
+            opacity: 1;
+            font-size: 1rem;
+        }
+
+        .timeline-dock-inner {
+            padding: 0.7rem 1.5rem;
+            gap: 1.5rem;
+        }
+
+        .kd-number {
+            font-size: 3.5rem;
+        }
+
+        .keydate-minimal {
+            align-items: flex-start !important;
+        }
+    }
 </style>
 
-<canvas id="hearts-canvas"></canvas>
+<div class="cursor-glow" id="cursor-glow"></div>
+<canvas id="hearts-canvas" style="position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:999;"></canvas>
 
 <main>
-    <div class="timeline-grid">
+    <div class="timeline-grid" aria-label="Timeline of our memories">
         {% for node in timeline %}
-            <div class="timeline-row {{ 'odd' if loop.index is odd else 'even' }}">
+            <article class="timeline-row scroll-item {{ 'odd' if loop.index is odd else 'even' }}" aria-label="Memory entry">
+                <!-- 时间 -->
                 <div class="time-wrapper">
-                    <div class="time-label">
-                        {{ node.timestamp.strftime('%Y.%m.%d') }}<br>
-                        <span style="opacity:0.4">{{ node.timestamp.strftime('%H:%M') }}</span>
-                    </div>
+                    <time class="time-label" datetime="{{ node.timestamp.isoformat() }}">
+                        {{ node.timestamp.strftime('%Y.%m.%d') }}
+                        <span>{{ node.timestamp.strftime('%H:%M') }}</span>
+                    </time>
                 </div>
 
-                <div class="axis-container">
-                    <div class="axis-line"></div>
+                <!-- 中轴 + 圆点 -->
+                <div class="axis-container" aria-hidden="true">
                     <div class="axis-dot"></div>
                 </div>
 
+                <!-- 内容 -->
                 <div class="content-wrapper">
-                    <div class="entry-card">
-                        <form action="/delete/{{ node.type }}/{{ node.item.id }}" method="post" onsubmit="return confirm('Archive this memory?')">
-                            <button class="btn-delete">×</button>
+                    <div class="entry-card" data-magnetic data-magnetic-strength="0.25">
+                        <form action="/delete/{{ node.type }}/{{ node.item.id }}" method="post" onsubmit="return confirm('Delete?')" aria-label="Archive this memory">
+                            <button class="btn-delete" title="Archive Memory" aria-label="Archive Memory">×</button>
                         </form>
 
                         {% if node.type == 'entry' %}
@@ -191,160 +650,364 @@
 
                         {% elif node.type == 'photo' %}
                             <div class="photo-frame">
-                                <img src="{{ url_for('uploaded_file', filename=node.item.filename) }}" loading="lazy">
+                                <img src="{{ url_for('uploaded_file', filename=node.item.filename) }}" loading="lazy" alt="memory photo">
                             </div>
                             {% if node.item.caption %}
-                                <div style="font-family:'JetBrains Mono'; font-size:0.7rem; color:#666; margin-top:0.5rem;">
-                                    // {{ node.item.caption }}
+                                <div class="photo-caption">
+                                    {{ node.item.caption }}
                                 </div>
                             {% endif %}
 
                         {% elif node.type == 'keydate' %}
                             {% set diff, state = get_days_diff(node.item.date) %}
-                            <div class="keydate-block">
-                                <div class="keydate-label">{{ node.item.title }}</div>
-                                <div class="keydate-days" style="{{ 'color:var(--neon-pink); -webkit-text-fill-color: initial;' if state == 'today' }}">
+                            <div class="keydate-minimal">
+                                <div class="kd-title">{{ node.item.title }}</div>
+                                <div class="kd-number" style="{{ 'color:var(--neon-pink);' if state == 'today' }}">
                                     {% if state == 'today' %}NOW{% else %}{{ diff }}{% endif %}
                                 </div>
-                                <div class="keydate-label">
-                                    {% if state == 'past' %}DAYS AGO{% elif state == 'future' %}DAYS LEFT{% else %}HAPPENING{% endif %}
+                                <div class="kd-meta">
+                                    {% if state == 'past' %}days since{% elif state == 'future' %}days left{% else %}happening now{% endif %}
                                 </div>
                             </div>
                         {% endif %}
                     </div>
                 </div>
-            </div>
+            </article>
         {% endfor %}
     </div>
 </main>
 
-<div style="position: fixed; bottom: 3rem; left: 50%; transform: translateX(-50%); z-index: 200;">
-    <div style="
-        background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(16px);
-        border: 1px solid rgba(255,255,255,0.1); border-radius: 100px;
-        padding: 0.6rem 1rem; display: flex; gap: 1.5rem; align-items: center;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-    ">
-        <button onclick="openModal('entry')" class="dock-btn">+</button>
-        <div style="width:1px; height:16px; background:rgba(255,255,255,0.1)"></div>
-        <button onclick="triggerHearts()" class="dock-btn miss-you-btn" title="Miss You">❤</button>
-        <div style="width:1px; height:16px; background:rgba(255,255,255,0.1)"></div>
-        <button onclick="openModal('photo')" class="dock-btn">IMG</button>
-        <button onclick="openModal('keydate')" class="dock-btn">DAY</button>
+<!-- Dock：底部操作区 -->
+<div class="timeline-dock" aria-label="Add or capture a memory">
+    <div class="timeline-dock-inner">
+        <button type="button" onclick="openModal('entry')" class="dock-btn" data-magnetic>TEXT</button>
+        <button type="button" onclick="triggerHearts()" class="dock-btn miss-you-btn" data-magnetic aria-label="Send hearts">❤</button>
+        <button type="button" onclick="openModal('photo')" class="dock-btn" data-magnetic>IMG</button>
+        <button type="button" onclick="openModal('keydate')" class="dock-btn" data-magnetic>DATE</button>
     </div>
 </div>
 
-<style>
-    .dock-btn { background: none; border: none; color: #888; font-family: 'JetBrains Mono'; font-size: 0.8rem; cursor: pointer; transition: 0.3s; }
-    .dock-btn:hover { color: white; }
-    .miss-you-btn { color: var(--neon-pink); opacity: 0.8; }
-    .miss-you-btn:hover { opacity: 1; transform: scale(1.2); text-shadow: 0 0 10px var(--neon-pink); }
-</style>
+<!-- Modal -->
+<div id="modal-backdrop" class="modal-backdrop"></div>
+<dialog id="input-modal" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-shell">
+        <button type="button" class="modal-close" aria-label="Close">&times;</button>
+        <h3 id="modal-title" class="modal-title">RECORD</h3>
 
-<dialog id="input-modal" style="background:#111; color:white; border:1px solid #333; border-radius:8px; padding:2.5rem; width:90%; max-width:420px; box-shadow: 0 50px 100px black;">
-    <form method="dialog"><button style="float:right; background:none; border:none; color:rgba(255,255,255,0.3); font-size:1.5rem; cursor:pointer;">&times;</button></form>
-    <h3 id="modal-title" style="margin-top:0; margin-bottom:1.5rem; font-family:'Space Grotesk'; font-weight:400; letter-spacing:1px;">RECORD</h3>
-
-    <form id="modal-form" method="post" enctype="multipart/form-data" class="modal-form-content">
-        <div>
-            <label style="font-size:0.7rem; color:#666; display:block; margin-bottom:6px; font-family:'JetBrains Mono'">TIMESTAMP</label>
-            <input type="datetime-local" name="custom_date" id="date-input" class="modal-field">
-        </div>
-
-        <div id="dynamic-fields" style="display:flex; flex-direction:column; gap:1.2rem;"></div>
-
-        <button type="submit" class="modal-save-btn">SAVE RECORD</button>
-    </form>
+        <form id="modal-form" method="post" enctype="multipart/form-data" class="modal-form-content">
+            <div style="margin-bottom: 1.5rem;">
+                <input type="datetime-local" name="custom_date" id="date-input" class="modal-field" style="color:#666; font-size:0.8rem;">
+            </div>
+            <div id="dynamic-fields" style="display:flex; flex-direction:column; gap:1.2rem;"></div>
+            <button type="submit" class="modal-save-btn" data-magnetic data-magnetic-strength="0.35">SAVE</button>
+        </form>
+    </div>
 </dialog>
 
+<!-- 外部库：GSAP + ScrollTrigger + Lenis（CDN） -->
+<script src="https://unpkg.com/gsap@3/dist/gsap.min.js"></script>
+<script src="https://unpkg.com/gsap@3/dist/ScrollTrigger.min.js"></script>
+<script src="https://unpkg.com/lenis@1.3.4/dist/lenis.min.js"></script>
+
 <script>
-    /* ---- Heart Animation Fix: 防止加速 ---- */
+    /* ---- 1. 平滑滚动 + ScrollTrigger 编排 ---- */
+    const prefersReducedMotion =
+        window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let lenis = null;
+
+    if (!prefersReducedMotion && typeof Lenis !== 'undefined') {
+        try {
+            // 简洁配置，autoRaf 内置 requestAnimationFrame
+            lenis = new Lenis({
+                autoRaf: true
+            });
+        } catch (e) {
+            console.warn('Lenis init failed', e);
+        }
+    }
+
+    if (!prefersReducedMotion && window.gsap && window.ScrollTrigger) {
+        gsap.registerPlugin(ScrollTrigger);
+
+        if (lenis && typeof lenis.on === 'function') {
+            // 保持 ScrollTrigger 与 Lenis 同步
+            lenis.on('scroll', () => {
+                ScrollTrigger.update();
+            });
+        }
+
+        const rows = gsap.utils.toArray('.timeline-row');
+
+        rows.forEach((row) => {
+            const time = row.querySelector('.time-wrapper');
+            const content = row.querySelector('.content-wrapper');
+            const dot = row.querySelector('.axis-dot');
+
+            if (time || content) {
+                gsap.set([time, content], {
+                    opacity: 0,
+                    y: 40,
+                    filter: 'blur(14px)'
+                });
+            }
+            if (dot) {
+                gsap.set(dot, { scale: 0.65, opacity: 0.7 });
+            }
+
+            // 入场编排：时间 -> 文本/照片 -> 圆点弹入
+            const tl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: row,
+                    start: 'top 75%',
+                    end: 'bottom 20%',
+                    toggleActions: 'play none none reverse'
+                }
+            });
+
+            if (time) {
+                tl.to(time, {
+                    opacity: 1,
+                    y: 0,
+                    filter: 'blur(0px)',
+                    duration: 0.6,
+                    ease: 'power3.out'
+                });
+            }
+
+            if (content) {
+                tl.to(content, {
+                    opacity: 1,
+                    y: 0,
+                    filter: 'blur(0px)',
+                    duration: 0.9,
+                    ease: 'power3.out'
+                }, '-=0.3');
+            }
+
+            if (dot) {
+                tl.to(dot, {
+                    scale: 1,
+                    opacity: 1,
+                    duration: 0.6,
+                    ease: 'elastic.out(1, 0.75)'
+                }, '-=0.6');
+            }
+
+            // 轻微视差：让内容有一点纵向漂移
+            if (content) {
+                gsap.to(content, {
+                    yPercent: row.classList.contains('odd') ? -4 : 4,
+                    ease: 'none',
+                    scrollTrigger: {
+                        trigger: row,
+                        start: 'top bottom',
+                        end: 'bottom top',
+                        scrub: true
+                    }
+                });
+            }
+        });
+    }
+
+    /* ---- 2. 自定义光标 ---- */
+    const cursorGlow = document.getElementById('cursor-glow');
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let currentX = mouseX;
+    let currentY = mouseY;
+
+    document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        if (cursorGlow) cursorGlow.style.opacity = '1';
+    });
+
+    document.addEventListener('mouseleave', () => {
+        if (cursorGlow) cursorGlow.style.opacity = '0';
+    });
+
+    function animateCursor() {
+        currentX += (mouseX - currentX) * 0.08;
+        currentY += (mouseY - currentY) * 0.08;
+
+        if (cursorGlow) {
+            cursorGlow.style.left = currentX + 'px';
+            cursorGlow.style.top = currentY + 'px';
+        }
+        requestAnimationFrame(animateCursor);
+    }
+    animateCursor();
+
+    // 光标在互动元素上增强
+    const cursorInteractiveSelectors = ['.timeline-row', '.dock-btn', '.photo-frame', '.btn-delete'];
+    const cursorInteractive = document.querySelectorAll(cursorInteractiveSelectors.join(','));
+
+    cursorInteractive.forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            if (cursorGlow) cursorGlow.classList.add('is-active');
+        });
+        el.addEventListener('mouseleave', () => {
+            if (cursorGlow) cursorGlow.classList.remove('is-active');
+        });
+    });
+
+    /* ---- 3. 心形粒子动画 ---- */
     const canvas = document.getElementById("hearts-canvas");
     const ctx = canvas.getContext("2d");
     let hearts = [];
-    let isAnimating = false; // [Fix] 添加状态锁
+    let isAnimatingHearts = false;
 
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-    window.onresize = resize; resize();
+    function resizeHearts() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeHearts);
+    resizeHearts();
 
     function triggerHearts() {
-        for(let i=0; i<15; i++) {
+        const originX = window.innerWidth / 2;
+        const originY = window.innerHeight - 80;
+
+        for (let i = 0; i < 25; i++) {
             hearts.push({
-                x: window.innerWidth/2 + (Math.random()*100-50),
-                y: window.innerHeight,
-                size: Math.random()*15+5,
-                speed: Math.random()*4+2,
+                x: originX,
+                y: originY,
+                size: Math.random() * 20 + 5,
+                speedX: (Math.random() - 0.5) * 12,
+                speedY: Math.random() * -15 - 5,
                 opacity: 1,
-                wobble: Math.random()*10
+                rotation: Math.random() * 360
             });
         }
-        // [Fix] 只有当没有在动画时，才启动 loop
-        if (!isAnimating) {
-            isAnimating = true;
-            animate();
+        if (!isAnimatingHearts) {
+            isAnimatingHearts = true;
+            requestAnimationFrame(animateHearts);
         }
     }
 
-    function animate() {
-        if(hearts.length === 0) {
-            isAnimating = false; // [Fix] 动画结束，解锁
-            ctx.clearRect(0,0,canvas.width,canvas.height);
+    function animateHearts() {
+        if (hearts.length === 0) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            isAnimatingHearts = false;
             return;
         }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        hearts.forEach((h,i)=>{
-            h.y-=h.speed; h.x+=Math.sin(h.wobble)*1; h.wobble+=0.05; h.opacity-=0.01;
-            ctx.fillStyle=`rgba(255,0,60,${h.opacity})`; ctx.font=`${h.size}px serif`; ctx.fillText("❤",h.x,h.y);
-            if(h.opacity<=0) hearts.splice(i,1);
+        hearts.forEach((h, i) => {
+            h.x += h.speedX;
+            h.y += h.speedY;
+            h.speedY += 0.3;
+            h.opacity -= 0.01;
+
+            ctx.save();
+            ctx.translate(h.x, h.y);
+            ctx.rotate((h.rotation * Math.PI) / 180);
+            ctx.fillStyle = `rgba(255, 0, 60, ${h.opacity})`;
+            ctx.font = `${h.size}px serif`;
+            ctx.fillText("❤", -h.size / 2, h.size / 2);
+            ctx.restore();
+
+            if (h.opacity <= 0) hearts.splice(i, 1);
         });
 
-        requestAnimationFrame(animate);
+        requestAnimationFrame(animateHearts);
     }
 
-    /* ---- Modal Logic ---- */
-    const dateInput = document.getElementById('date-input');
-    const form = document.getElementById('modal-form');
-    const fields = document.getElementById('dynamic-fields');
-    const title = document.getElementById('modal-title');
+    window.triggerHearts = triggerHearts;
+
+    /* ---- 4. Modal 逻辑 ---- */
     const modal = document.getElementById('input-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+    const dateInput = document.getElementById('date-input');
+    const modalForm = document.getElementById('modal-form');
+    const dynamicFields = document.getElementById('dynamic-fields');
+    const modalTitle = document.getElementById('modal-title');
+    const kdHiddenId = 'kd-hidden';
 
     function openModal(type) {
-        // 设置默认时间为当前本地时间 (YYYY-MM-DDTHH:MM)
+        if (!modal) return;
+
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        dateInput.value = now.toISOString().slice(0,16);
+        if (dateInput) {
+            dateInput.value = now.toISOString().slice(0, 16);
+        }
 
+        if (backdrop) backdrop.classList.add('active');
         modal.showModal();
 
-        if(type === 'entry') {
-            form.action = "{{ url_for('add_entry') }}";
-            title.innerText = "THOUGHTS";
-            fields.innerHTML = `<textarea name="content" rows="5" class="modal-field" placeholder="Write something..." style="resize:vertical;"></textarea>`;
-        } else if(type === 'keydate') {
-            form.action = "{{ url_for('add_keydate') }}";
-            title.innerText = "KEY DATE";
-            // [Fix] 移除 type="hidden" 的 date，直接使用上面的 datetime-local，但在 JS 提交时我们需要确保 keydate 使用同一字段名
-            // 后端 add_keydate 现在读取 'date' 字段，我们可以做一个隐藏域同步，或者让后端读取 custom_date
-            // 为了最小化后端改动，我们这里加一个隐藏域，在 submit 时同步值
-            fields.innerHTML = `
-                <input name="title" placeholder="Event Title" class="modal-field" required>
-                <input type="hidden" name="date" id="kd-hidden">
+        if (type === 'entry') {
+            modalForm.action = "{{ url_for('add_entry') }}";
+            modalTitle.innerText = "THOUGHT";
+            dynamicFields.innerHTML = `
+                <textarea name="content" rows="5" class="modal-field" placeholder="..." style="resize:vertical;"></textarea>
             `;
-            form.onsubmit = () => {
-                if(type === 'keydate') {
-                    // [Fix] 传递完整的时间字符串，不再分割 split('T')[0]
-                    document.getElementById('kd-hidden').value = dateInput.value;
+            modalForm.onsubmit = null;
+        } else if (type === 'keydate') {
+            modalForm.action = "{{ url_for('add_keydate') }}";
+            modalTitle.innerText = "MEMORY";
+            dynamicFields.innerHTML = `
+                <input name="title" placeholder="Title" class="modal-field" required>
+                <input type="hidden" name="date" id="${kdHiddenId}">
+            `;
+            modalForm.onsubmit = () => {
+                const kdHidden = document.getElementById(kdHiddenId);
+                if (kdHidden && dateInput) {
+                    kdHidden.value = dateInput.value;
                 }
-            }
-        } else if(type === 'photo') {
-            form.action = "{{ url_for('add_photo') }}";
-            title.innerText = "VISUAL";
-            fields.innerHTML = `
-                <input type="file" name="photo" class="modal-field" style="padding:10px; height:auto;">
-                <input name="caption" placeholder="Caption" class="modal-field">
+            };
+        } else if (type === 'photo') {
+            modalForm.action = "{{ url_for('add_photo') }}";
+            modalTitle.innerText = "VISUAL";
+            dynamicFields.innerHTML = `
+                <input type="file" name="photo" class="modal-field" accept="image/*">
+                <input name="caption" placeholder="Caption" class="modal-field" style="margin-top:10px">
             `;
+            modalForm.onsubmit = null;
         }
     }
+
+    function closeModal() {
+        if (backdrop) backdrop.classList.remove('active');
+        if (modal) modal.close();
+    }
+
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+
+    if (backdrop) {
+        backdrop.addEventListener('click', closeModal);
+    }
+
+    const modalCloseButton = document.querySelector('.modal-close');
+    if (modalCloseButton) {
+        modalCloseButton.addEventListener('click', closeModal);
+    }
+
+    /* ---- 5. 磁性按钮 / 卡片 ---- */
+    const magneticTargets = document.querySelectorAll('[data-magnetic]');
+
+    magneticTargets.forEach((el) => {
+        const strength = el.dataset.magneticStrength ? parseFloat(el.dataset.magneticStrength) : 0.5;
+
+        el.addEventListener('mousemove', (e) => {
+            const rect = el.getBoundingClientRect();
+            const relX = e.clientX - rect.left - rect.width / 2;
+            const relY = e.clientY - rect.top - rect.height / 2;
+
+            const moveX = (relX / rect.width) * 12 * strength;
+            const moveY = (relY / rect.height) * 12 * strength;
+
+            el.style.setProperty('--mx', `${moveX}px`);
+            el.style.setProperty('--my', `${moveY}px`);
+        });
+
+        el.addEventListener('mouseleave', () => {
+            el.style.setProperty('--mx', '0px');
+            el.style.setProperty('--my', '0px');
+        });
+    });
 </script>
 {% endblock %}
