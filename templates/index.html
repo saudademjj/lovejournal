@@ -2,349 +2,1136 @@
 {% block content %}
 <style>
     main {
-        max-width: 1000px; margin: 0 auto; padding: 180px 2rem 200px;
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 180px 2rem 200px;
+        position: relative;
+        z-index: 2;
     }
 
-    /* ---- Grid System Fix ---- */
+    html.modal-open,
+    html.modal-open body {
+        overflow: hidden;
+    }
+
+    /* ---------- 自定义光标光晕 ---------- */
+    .cursor-glow {
+        position: fixed;
+        width: 320px;
+        height: 320px;
+        background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0) 70%);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 1;
+        mix-blend-mode: screen;
+        transition: opacity 0.35s ease, transform 0.35s ease, background 0.35s ease;
+        opacity: 0.85;
+    }
+
+    .cursor-glow--active {
+        transform: translate(-50%, -50%) scale(1.1);
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0) 70%);
+        opacity: 1;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .cursor-glow {
+            display: none;
+        }
+    }
+
+    /* ---------- 时间轴 Grid & 中轴线 ---------- */
     .timeline-grid {
+        position: relative;
         display: grid;
-        /* 固定三列：内容(1fr) - 中轴(60px) - 内容(1fr) */
-        grid-template-columns: 1fr 60px 1fr;
-        row-gap: 0;
+        grid-template-columns: minmax(0, 1fr) 60px minmax(0, 1fr);
+        column-gap: 0;
     }
 
+    .timeline-axis {
+        grid-column: 2;
+        grid-row: 1 / -1;
+        justify-self: center;
+        width: 1px;
+        position: relative;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .timeline-axis::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            to bottom,
+            rgba(255,255,255,0.02),
+            rgba(255,255,255,0.12),
+            rgba(255,255,255,0.02)
+        );
+        opacity: 0.7;
+        animation: axisBreath 5s ease-in-out infinite;
+        transform-origin: center;
+    }
+
+    @keyframes axisBreath {
+        0%, 100% { opacity: 0.4; transform: scaleY(1); }
+        50%      { opacity: 1;   transform: scaleY(1.02); }
+    }
+
+    /* ---------- 每一行节点 ---------- */
     .timeline-row {
         grid-column: 1 / -1;
         display: grid;
-        grid-template-columns: 1fr 60px 1fr; /* 继承父网格 */
-        align-items: flex-start;
+        grid-template-columns: minmax(0, 1fr) 60px minmax(0, 1fr);
+        align-items: center;
+        padding: 2.6rem 0;
         position: relative;
-        padding-bottom: 6rem;
+        z-index: 1;
     }
 
-    /* [Fix] 强制中轴容器永远在第2列，且内容居中 */
-    .axis-container {
-        grid-column: 2 !important;
-        position: relative; height: 100%;
-        display: flex; justify-content: center; /* 水平居中 */
-        width: 100%;
+    .axis-cell {
+        grid-column: 2;
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
 
-    /* 中轴线 */
-    .axis-line {
-        position: absolute; top: 0; bottom: 0; width: 1px;
-        background: rgba(255,255,255,0.08);
-        left: 50%; transform: translateX(-50%); /* 确保线在正中间 */
-    }
-
-    /* 圆点 */
+    /* 中心圆 + 霓虹环：默认低调，高亮时爆发 */
     .axis-dot {
-        width: 8px; height: 8px; background: white; border-radius: 50%;
-        position: sticky;
-        top: 300px; /* 视觉停留位置 */
-        margin-top: 6px; /* 初始顶部偏移，对齐文字 */
-        z-index: 10;
-        box-shadow: 0 0 0 4px var(--bg);
-        transition: transform 0.3s;
+        position: relative;
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        background: transparent;
+        cursor: pointer;
+        transform: translateZ(0);
     }
-    .timeline-row:hover .axis-dot { transform: scale(1.5); background: var(--text-main); }
 
-    /* ---- Content Layout Logic (Swapping Sides) ---- */
-    .content-wrapper { position: relative; width: 100%; }
-    .time-wrapper { width: 100%; }
+    /* 霓虹环 */
+    .axis-dot::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        border: 1px solid rgba(255,255,255,0.4);
+        box-shadow:
+            0 0 0 1px var(--bg),
+            0 0 0 rgba(255,0,60,0);
+        transition:
+            border-color 0.35s cubic-bezier(0.19, 1, 0.22, 1),
+            box-shadow 0.35s cubic-bezier(0.19, 1, 0.22, 1),
+            transform 0.35s cubic-bezier(0.19, 1, 0.22, 1),
+            opacity 0.3s ease;
+        opacity: 0.9;
+    }
 
-    /* 偶数行 (Even): 时间左，内容右 */
-    .timeline-row.even .content-wrapper { grid-column: 3; padding-left: 3rem; text-align: left; }
-    .timeline-row.even .time-wrapper { grid-column: 1; text-align: right; padding-right: 1.5rem; }
+    /* 中心实心圆 */
+    .axis-dot::before {
+        content: '';
+        position: absolute;
+        inset: 4px;
+        border-radius: inherit;
+        background: rgba(255,255,255,0.7);
+        box-shadow: 0 0 8px rgba(255,255,255,0.25);
+        transition:
+            background 0.35s cubic-bezier(0.19, 1, 0.22, 1),
+            box-shadow 0.35s cubic-bezier(0.19, 1, 0.22, 1),
+            transform 0.35s cubic-bezier(0.19, 1, 0.22, 1);
+    }
 
-    /* 奇数行 (Odd): 内容左，时间右 */
-    .timeline-row.odd .content-wrapper { grid-column: 1; padding-right: 3rem; text-align: right; }
-    .timeline-row.odd .time-wrapper { grid-column: 3; text-align: left; padding-left: 1.5rem; }
+    /* 激活态（由 JS 加 row class 控制） */
+    .timeline-row--active .axis-dot::after {
+        border-color: var(--neon-pink);
+        box-shadow:
+            0 0 0 1px var(--bg),
+            0 0 22px rgba(255,0,60,0.9);
+        transform: scale(1.2);
+    }
 
-    /* 修正奇数行内容内部元素的对齐，保持工业感 */
-    .timeline-row.odd .card-actions { right: auto; left: 0; }
+    .timeline-row--active .axis-dot::before {
+        background: var(--neon-pink);
+        box-shadow: 0 0 18px rgba(255,0,60,0.9);
+        transform: scale(0.95);
+    }
 
-    /* ---- Components (Style Preserved) ---- */
+    /* 适当保留 hover 兜底 */
+    .timeline-row:hover .axis-dot::after {
+        border-color: var(--neon-pink);
+        box-shadow:
+            0 0 0 1px var(--bg),
+            0 0 16px rgba(255,0,60,0.65);
+    }
+
+    /* ---------- 时间列 & 内容列 ---------- */
+    .time-wrapper,
+    .content-wrapper {
+        display: flex;
+        align-items: center;
+        opacity: 0;
+        transform: translateY(32px);
+        will-change: opacity, transform;
+    }
+
+    .timeline-row.even .time-wrapper {
+        grid-column: 1;
+        justify-content: flex-end;
+        padding-right: 2rem;
+        text-align: right;
+    }
+
+    .timeline-row.even .content-wrapper {
+        grid-column: 3;
+        justify-content: flex-start;
+        padding-left: 2rem;
+        text-align: left;
+    }
+
+    .timeline-row.odd .content-wrapper {
+        grid-column: 1;
+        justify-content: flex-end;
+        padding-right: 2rem;
+        text-align: right;
+    }
+
+    .timeline-row.odd .time-wrapper {
+        grid-column: 3;
+        justify-content: flex-start;
+        padding-left: 2rem;
+        text-align: left;
+    }
+
     .time-label {
-        font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #555;
-        margin-top: 2px; transition: 0.3s;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+        color: #8f8f8f;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        transition: color 0.25s ease, opacity 0.25s ease, text-shadow 0.3s ease;
+        opacity: 0.9;
     }
-    .timeline-row:hover .time-label { color: white; letter-spacing: 1px; }
 
+    .time-label span {
+        opacity: 0.55;
+        font-size: 0.7rem;
+        margin-left: 8px;
+    }
+
+    /* 激活态时间高亮，保持字体几何不变，只提升亮度 */
+    .timeline-row--active .time-label {
+        color: #f7f7f7;
+        opacity: 1;
+        text-shadow: 0 0 12px rgba(255,255,255,0.4);
+    }
+
+    .timeline-row--active .time-label span {
+        opacity: 0.85;
+    }
+
+    /* ---------- 统一高对比文本系统 ---------- */
     .entry-card {
-        position: relative; display: inline-block;
-        max-width: 90%;
+        position: relative;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        max-width: 32rem;
+        width: 100%;
+        gap: 1rem;
     }
 
-    .photo-frame {
-        overflow: hidden; border-radius: 4px; margin-bottom: 1rem;
-        border: 1px solid rgba(255,255,255,0.1);
-        transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+    .entry-body {
+        font-family: 'Inter', sans-serif;
+        font-size: 1rem;
+        line-height: 1.8;
+        color: #d6d6d6;
+        font-weight: 300;
+        letter-spacing: 0.01em;
+        transition: color 0.3s ease;
     }
-    .photo-frame img { display: block; width: 100%; height: auto; filter: grayscale(20%); transition: 0.5s; }
-    .entry-card:hover .photo-frame { transform: scale(1.02); border-color: white; }
-    .entry-card:hover img { filter: grayscale(0%); }
+
+    .timeline-row--active .entry-body {
+        color: #f3f3f3;
+    }
 
     .text-entry {
-        font-family: 'Inter', sans-serif; font-size: 0.95rem; line-height: 1.6;
-        color: #ccc; background: transparent; border: none;
+        white-space: pre-wrap;
     }
 
-    .keydate-block {
-        border: 1px solid rgba(255,255,255,0.15); padding: 1.5rem 2rem;
-        display: inline-flex; flex-direction: column; gap: 0.5rem;
-        background: rgba(255,255,255,0.02); backdrop-filter: blur(10px);
-        min-width: 200px;
+    .keydate-minimal {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.12rem;
     }
-    .keydate-days {
-        font-family: 'Space Grotesk'; font-size: 2.5rem; font-weight: 700; line-height: 1;
-        background: linear-gradient(to bottom right, #fff, #888);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .keydate-label { font-family: 'JetBrains Mono'; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: #555; }
 
+    .timeline-row.odd .keydate-minimal {
+        align-items: flex-end;
+    }
+
+    .kd-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 1rem;
+        font-weight: 300;
+        color: #d6d6d6;
+        letter-spacing: 0.01em;
+        transition: color 0.3s ease;
+    }
+
+    .timeline-row--active .kd-title {
+        color: #f3f3f3;
+    }
+
+    .kd-number {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 4.3rem;
+        font-weight: 700;
+        line-height: 0.9;
+        color: #ffffff;
+        letter-spacing: -2px;
+        margin-bottom: 0.1rem;
+        animation: kdBreath 6s ease-in-out infinite;
+    }
+
+    .kd-meta {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        color: #8a8a8a;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        transition: color 0.3s ease;
+    }
+
+    .timeline-row--active .kd-meta {
+        color: #b4b4b4;
+    }
+
+    @keyframes kdBreath {
+        0%, 100% { text-shadow: 0 0 0 rgba(255,255,255,0); }
+        50%      { text-shadow: 0 0 16px rgba(255,255,255,0.35); }
+    }
+
+    /* ---------- 图片液体缩放 + 文字对比 ---------- */
+    .photo-frame {
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 0.9rem;
+        border: 1px solid rgba(255,255,255,0.08);
+        position: relative;
+        transition: border-color 0.4s ease, transform 0.6s ease;
+        will-change: transform;
+    }
+
+    .photo-frame::after {
+        content: '';
+        position: absolute;
+        inset: -20%;
+        background:
+            radial-gradient(circle at 12% 0%, rgba(255,255,255,0.06), transparent 40%),
+            radial-gradient(circle at 90% 100%, rgba(255,255,255,0.05), transparent 55%);
+        mix-blend-mode: soft-light;
+        opacity: 0;
+        transition: opacity 0.6s ease, transform 1.2s ease;
+        transform: translate3d(-6%, 4%, 0) scale(1.04);
+        pointer-events: none;
+    }
+
+    .photo-frame img {
+        display: block;
+        width: 100%;
+        filter: grayscale(40%) brightness(0.9);
+        transform: scale(1.02);
+        transform-origin: center;
+        transition:
+            transform 1.1s cubic-bezier(0.16, 1, 0.3, 1),
+            filter 0.6s ease;
+        will-change: transform, filter;
+    }
+
+    .timeline-row--active .photo-frame {
+        border-color: rgba(255,255,255,0.22);
+        transform: translate3d(0, -2px, 0);
+    }
+
+    .timeline-row--active .photo-frame img {
+        transform: scale(1.08);
+        filter: grayscale(0%) brightness(1.04) contrast(1.04);
+    }
+
+    .timeline-row--active .photo-frame::after {
+        opacity: 1;
+        transform: translate3d(4%, -3%, 0) scale(1.07);
+    }
+
+    .photo-caption {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        color: #a0a0a0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .photo-caption::before {
+        content: '';
+        width: 18px;
+        height: 1px;
+        background: #3a3a3a;
+        flex-shrink: 0;
+    }
+
+    /* ---------- 删除按钮 ---------- */
     .btn-delete {
-        position: absolute; top: -10px; right: -20px;
-        opacity: 0; color: #444; cursor: pointer; background: none; border: none; font-size: 1.2rem; transition: 0.2s;
-    }
-    .timeline-row.odd .btn-delete { right: auto; left: -20px; }
-    .entry-card:hover .btn-delete { opacity: 1; }
-    .btn-delete:hover { color: var(--neon-pink); }
-
-    /* Mobile */
-    @media (max-width: 768px) {
-        .timeline-grid { grid-template-columns: 20px 1fr; }
-        .timeline-row, .timeline-row.odd, .timeline-row.even { grid-template-columns: 20px 1fr; padding-bottom: 4rem; }
-        .axis-container { grid-column: 1 !important; justify-content: flex-start; width: auto; }
-        .axis-line { left: 9px; transform: none; } .axis-dot { margin-left: 5px; }
-
-        .content-wrapper, .timeline-row.odd .content-wrapper, .timeline-row.even .content-wrapper {
-            grid-column: 2; padding: 0 0 0 1.5rem; text-align: left;
-        }
-        .time-wrapper, .timeline-row.odd .time-wrapper, .timeline-row.even .time-wrapper {
-            grid-column: 2; text-align: left; padding-left: 1.5rem; margin-bottom: 0.5rem; display: block;
-        }
-        .entry-card { max-width: 100%; display: block; }
+        position: absolute;
+        top: -10px;
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        color: #444;
+        cursor: pointer;
+        padding: 0;
+        opacity: 0;
+        transition:
+            opacity 0.3s ease,
+            color 0.3s ease,
+            transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 20;
     }
 
-    /* [Fix] Modal Specific Styles for Alignment */
+    .timeline-row.even .btn-delete {
+        right: -30px;
+    }
+
+    .timeline-row.odd .btn-delete {
+        left: -30px;
+    }
+
+    .entry-card:hover .btn-delete {
+        opacity: 1;
+        color: #888;
+    }
+
+    .timeline-row.even .entry-card:hover .btn-delete {
+        transform: translateX(6px) rotate(90deg);
+    }
+
+    .timeline-row.odd .entry-card:hover .btn-delete {
+        transform: translateX(-6px) rotate(90deg);
+    }
+
+    .btn-delete:hover {
+        color: var(--neon-pink) !important;
+    }
+
+    /* ---------- Dock 控制条 ---------- */
+    .dock {
+        position: fixed;
+        bottom: 3rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 200;
+    }
+
+    .dock-inner {
+        background: rgba(5,5,5,0.7);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 999px;
+        padding: 0.9rem 2.1rem;
+        display: flex;
+        gap: 2.4rem;
+        align-items: center;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.9);
+    }
+
+    .dock-btn {
+        background: none;
+        border: none;
+        color: #b0b0b0;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 0.75rem;
+        cursor: pointer;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        padding: 0;
+        transition: color 0.25s ease, transform 0.25s ease, text-shadow 0.25s ease;
+    }
+
+    .dock-btn:hover {
+        color: #ffffff;
+        transform: translateY(-2px);
+        text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+
+    .miss-you-btn {
+        color: var(--neon-pink);
+        font-size: 1.2rem;
+        padding: 0 0.5rem;
+        opacity: 0.9;
+    }
+
+    .miss-you-btn:hover {
+        transform: scale(1.15);
+        filter: drop-shadow(0 0 9px var(--neon-pink));
+    }
+
+    /* ---------- Modal ---------- */
+    .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.82);
+        z-index: 998;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s ease;
+        backdrop-filter: blur(8px);
+    }
+
+    .modal-backdrop.active {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    dialog {
+        border: 1px solid #222;
+        background: #050505;
+        color: #fff;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        margin: 0;
+        transform: translate(-50%, -40%) scale(0.95);
+        opacity: 0;
+        padding: 3rem;
+        border-radius: 16px;
+        box-shadow: 0 40px 80px #000;
+        width: min(420px, calc(100vw - 3rem));
+        max-height: min(540px, calc(100vh - 4rem));
+        box-sizing: border-box;
+        overflow-x: hidden;
+        overflow-y: auto;
+        z-index: 999;
+    }
+
+    dialog[open] {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+
+    .modal-title {
+        margin: 0 0 2rem;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 300;
+        font-size: 1.4rem;
+        letter-spacing: -1px;
+    }
+
+    .modal-close {
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        background: none;
+        border: none;
+        color: #666;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0;
+    }
+
     .modal-form-content {
         display: flex;
         flex-direction: column;
-        gap: 1.2rem;
+        gap: 1.3rem;
     }
+
     .modal-field {
         width: 100%;
-        background: #222;
-        border: 1px solid #333;
-        color: white;
-        padding: 12px;
+        background: #101010;
+        border: 1px solid #242424;
+        color: #f0f0f0;
+        padding: 14px;
         font-family: 'Inter', sans-serif;
-        box-sizing: border-box; /* 确保 padding 不撑破宽度 */
-        border-radius: 4px;
+        border-radius: 8px;
+        transition: 0.3s ease;
+        box-sizing: border-box;
     }
-    .modal-field:focus { outline: 1px solid white; border-color: white; }
+
+    .modal-field::placeholder {
+        color: #626262;
+    }
+
+    .modal-field:focus {
+        border-color: #555;
+        outline: none;
+        background: #151515;
+    }
+
     .modal-save-btn {
         width: 100%;
-        background: white;
-        color: black;
+        background: #ffffff;
+        color: #000000;
         border: none;
         padding: 14px;
         font-weight: 700;
         font-family: 'Space Grotesk', sans-serif;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.24em;
         cursor: pointer;
-        margin-top: 1rem;
+        margin-top: 0.8rem;
+        border-radius: 8px;
+        transition: background 0.3s ease, transform 0.25s ease, box-shadow 0.25s ease;
     }
-    .modal-save-btn:hover { background: #ccc; }
 
-    #hearts-canvas { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:999; }
+    .modal-save-btn:hover {
+        background: #dcdcdc;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.7);
+        transform: translateY(-1px);
+    }
+
+    /* ---------- 响应式 ---------- */
+    @media (max-width: 768px) {
+        main {
+            padding: 140px 1.5rem 160px;
+        }
+
+        .timeline-grid {
+            grid-template-columns: 26px minmax(0,1fr);
+        }
+
+        .timeline-axis {
+            grid-column: 1;
+        }
+
+        .timeline-row {
+            grid-template-columns: 26px minmax(0,1fr);
+            padding: 2rem 0;
+        }
+
+        .axis-cell {
+            grid-column: 1;
+            justify-content: flex-start;
+        }
+
+        .axis-dot {
+            margin-left: 8px;
+        }
+
+        .time-wrapper,
+        .content-wrapper {
+            grid-column: 2 !important;
+            text-align: left !important;
+            padding: 0 0 0 1.5rem !important;
+        }
+
+        .time-wrapper {
+            margin-bottom: 0.4rem;
+            opacity: 0.8;
+        }
+
+        .btn-delete {
+            left: auto !important;
+            right: 0 !important;
+            top: -25px;
+            opacity: 1;
+            font-size: 1rem;
+        }
+
+        .dock-inner {
+            padding: 0.7rem 1.6rem;
+            gap: 1.6rem;
+        }
+
+        dialog {
+            padding: 2.2rem 1.8rem;
+            max-height: calc(100vh - 2rem);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        * {
+            scroll-behavior: auto !important;
+            animation-duration: 0.001ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.001ms !important;
+        }
+    }
 </style>
 
-<canvas id="hearts-canvas"></canvas>
+<div class="cursor-glow" id="cursor-glow"></div>
+<canvas id="hearts-canvas" style="position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:995;"></canvas>
 
-<main>
-    <div class="timeline-grid">
+<main aria-label="Shared timeline">
+    <section class="timeline-grid" aria-live="polite">
+        <div class="timeline-axis" aria-hidden="true"></div>
+
         {% for node in timeline %}
-            <div class="timeline-row {{ 'odd' if loop.index is odd else 'even' }}">
-                <div class="time-wrapper">
+            <article
+                class="timeline-row {{ 'odd' if loop.index is odd else 'even' }}"
+                data-index="{{ loop.index }}"
+                aria-label="Memory at {{ node.timestamp.strftime('%Y-%m-%d %H:%M') }}"
+            >
+                <header class="time-wrapper">
                     <div class="time-label">
-                        {{ node.timestamp.strftime('%Y.%m.%d') }}<br>
-                        <span style="opacity:0.4">{{ node.timestamp.strftime('%H:%M') }}</span>
+                        {{ node.timestamp.strftime('%Y.%m.%d') }}
+                        <span>{{ node.timestamp.strftime('%H:%M') }}</span>
                     </div>
-                </div>
+                </header>
 
-                <div class="axis-container">
-                    <div class="axis-line"></div>
-                    <div class="axis-dot"></div>
+                <div class="axis-cell">
+                    <button
+                        class="axis-dot"
+                        type="button"
+                        data-magnetic
+                        data-magnetic-strength="0.35"
+                        aria-label="Focus memory at {{ node.timestamp.strftime('%Y-%m-%d %H:%M') }}"
+                    ></button>
                 </div>
 
                 <div class="content-wrapper">
-                    <div class="entry-card">
-                        <form action="/delete/{{ node.type }}/{{ node.item.id }}" method="post" onsubmit="return confirm('Archive this memory?')">
-                            <button class="btn-delete">×</button>
+                    <div class="entry-card" data-magnetic data-magnetic-strength="0.18">
+                        <form
+                            action="/delete/{{ node.type }}/{{ node.item.id }}"
+                            method="post"
+                            onsubmit="return confirm('Delete?')"
+                            aria-label="Archive this memory"
+                        >
+                            <button class="btn-delete" type="submit" title="Archive Memory">×</button>
                         </form>
 
                         {% if node.type == 'entry' %}
-                            <div class="text-entry">{{ node.item.content }}</div>
+                            <div class="entry-body text-entry">
+                                {{ node.item.content }}
+                            </div>
 
                         {% elif node.type == 'photo' %}
                             <div class="photo-frame">
-                                <img src="{{ url_for('uploaded_file', filename=node.item.filename) }}" loading="lazy">
+                                <img
+                                    src="{{ url_for('uploaded_file', filename=node.item.filename) }}"
+                                    loading="lazy"
+                                    alt="{{ node.item.caption or 'Memory photo' }}"
+                                >
                             </div>
                             {% if node.item.caption %}
-                                <div style="font-family:'JetBrains Mono'; font-size:0.7rem; color:#666; margin-top:0.5rem;">
-                                    // {{ node.item.caption }}
+                                <div class="photo-caption">
+                                    {{ node.item.caption }}
                                 </div>
                             {% endif %}
 
                         {% elif node.type == 'keydate' %}
                             {% set diff, state = get_days_diff(node.item.date) %}
-                            <div class="keydate-block">
-                                <div class="keydate-label">{{ node.item.title }}</div>
-                                <div class="keydate-days" style="{{ 'color:var(--neon-pink); -webkit-text-fill-color: initial;' if state == 'today' }}">
-                                    {% if state == 'today' %}NOW{% else %}{{ diff }}{% endif %}
+                            <div class="keydate-minimal">
+                                <div class="kd-title">
+                                    {{ node.item.title }}
                                 </div>
-                                <div class="keydate-label">
-                                    {% if state == 'past' %}DAYS AGO{% elif state == 'future' %}DAYS LEFT{% else %}HAPPENING{% endif %}
+                                <div
+                                    class="kd-number"
+                                    style="{{ 'color:var(--neon-pink);' if state == 'today' }}"
+                                >
+                                    {% if state == 'today' %}
+                                        NOW
+                                    {% else %}
+                                        {{ diff }}
+                                    {% endif %}
+                                </div>
+                                <div class="kd-meta">
+                                    {% if state == 'past' %}
+                                        days since
+                                    {% elif state == 'future' %}
+                                        days left
+                                    {% else %}
+                                        happening now
+                                    {% endif %}
                                 </div>
                             </div>
                         {% endif %}
                     </div>
                 </div>
-            </div>
+            </article>
         {% endfor %}
-    </div>
+    </section>
 </main>
 
-<div style="position: fixed; bottom: 3rem; left: 50%; transform: translateX(-50%); z-index: 200;">
-    <div style="
-        background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(16px);
-        border: 1px solid rgba(255,255,255,0.1); border-radius: 100px;
-        padding: 0.6rem 1rem; display: flex; gap: 1.5rem; align-items: center;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-    ">
-        <button onclick="openModal('entry')" class="dock-btn">+</button>
-        <div style="width:1px; height:16px; background:rgba(255,255,255,0.1)"></div>
-        <button onclick="triggerHearts()" class="dock-btn miss-you-btn" title="Miss You">❤</button>
-        <div style="width:1px; height:16px; background:rgba(255,255,255,0.1)"></div>
-        <button onclick="openModal('photo')" class="dock-btn">IMG</button>
-        <button onclick="openModal('keydate')" class="dock-btn">DAY</button>
+<!-- Dock -->
+<div class="dock" aria-label="Memory controls">
+    <div class="dock-inner">
+        <button type="button" onclick="openModal('entry')" class="dock-btn" data-magnetic data-magnetic-strength="0.22">TEXT</button>
+        <button type="button" onclick="triggerHearts()" class="dock-btn miss-you-btn" aria-label="Send hearts" data-magnetic data-magnetic-strength="0.3">❤</button>
+        <button type="button" onclick="openModal('photo')" class="dock-btn" data-magnetic data-magnetic-strength="0.22">IMG</button>
+        <button type="button" onclick="openModal('keydate')" class="dock-btn" data-magnetic data-magnetic-strength="0.22">DATE</button>
     </div>
 </div>
 
-<style>
-    .dock-btn { background: none; border: none; color: #888; font-family: 'JetBrains Mono'; font-size: 0.8rem; cursor: pointer; transition: 0.3s; }
-    .dock-btn:hover { color: white; }
-    .miss-you-btn { color: var(--neon-pink); opacity: 0.8; }
-    .miss-you-btn:hover { opacity: 1; transform: scale(1.2); text-shadow: 0 0 10px var(--neon-pink); }
-</style>
+<!-- Modal -->
+<div id="modal-backdrop" class="modal-backdrop"></div>
+<dialog id="input-modal" aria-modal="true" aria-labelledby="modal-title">
+    <button class="modal-close" type="button" onclick="closeModal()" aria-label="Close">&times;</button>
 
-<dialog id="input-modal" style="background:#111; color:white; border:1px solid #333; border-radius:8px; padding:2.5rem; width:90%; max-width:420px; box-shadow: 0 50px 100px black;">
-    <form method="dialog"><button style="float:right; background:none; border:none; color:rgba(255,255,255,0.3); font-size:1.5rem; cursor:pointer;">&times;</button></form>
-    <h3 id="modal-title" style="margin-top:0; margin-bottom:1.5rem; font-family:'Space Grotesk'; font-weight:400; letter-spacing:1px;">RECORD</h3>
+    <h3 id="modal-title" class="modal-title">RECORD</h3>
 
     <form id="modal-form" method="post" enctype="multipart/form-data" class="modal-form-content">
-        <div>
-            <label style="font-size:0.7rem; color:#666; display:block; margin-bottom:6px; font-family:'JetBrains Mono'">TIMESTAMP</label>
-            <input type="datetime-local" name="custom_date" id="date-input" class="modal-field">
-        </div>
+        <label style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.18em; color:#6a6a6a;">
+            When
+            <input
+                type="datetime-local"
+                name="custom_date"
+                id="date-input"
+                class="modal-field"
+                style="margin-top:0.4rem; font-size:0.8rem;"
+            >
+        </label>
 
-        <div id="dynamic-fields" style="display:flex; flex-direction:column; gap:1.2rem;"></div>
+        <div id="dynamic-fields"></div>
 
-        <button type="submit" class="modal-save-btn">SAVE RECORD</button>
+        <button type="submit" class="modal-save-btn">SAVE</button>
     </form>
 </dialog>
 
+<script src="https://unpkg.com/@studio-freight/lenis@1.1.18/bundled/lenis.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
 <script>
-    /* ---- Heart Animation Fix: 防止加速 ---- */
-    const canvas = document.getElementById("hearts-canvas");
-    const ctx = canvas.getContext("2d");
-    let hearts = [];
-    let isAnimating = false; // [Fix] 添加状态锁
+    const prefersReducedMotion =
+        window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-    window.onresize = resize; resize();
+    let lenisInstance = null;
 
-    function triggerHearts() {
-        for(let i=0; i<15; i++) {
-            hearts.push({
-                x: window.innerWidth/2 + (Math.random()*100-50),
-                y: window.innerHeight,
-                size: Math.random()*15+5,
-                speed: Math.random()*4+2,
-                opacity: 1,
-                wobble: Math.random()*10
-            });
-        }
-        // [Fix] 只有当没有在动画时，才启动 loop
-        if (!isAnimating) {
-            isAnimating = true;
-            animate();
-        }
-    }
+    /* --------- 1. Cursor --------- */
+    const cursorGlow = document.getElementById('cursor-glow');
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let currentX = mouseX;
+    let currentY = mouseY;
 
-    function animate() {
-        if(hearts.length === 0) {
-            isAnimating = false; // [Fix] 动画结束，解锁
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-            return;
-        }
-
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        hearts.forEach((h,i)=>{
-            h.y-=h.speed; h.x+=Math.sin(h.wobble)*1; h.wobble+=0.05; h.opacity-=0.01;
-            ctx.fillStyle=`rgba(255,0,60,${h.opacity})`; ctx.font=`${h.size}px serif`; ctx.fillText("❤",h.x,h.y);
-            if(h.opacity<=0) hearts.splice(i,1);
+    if (cursorGlow) {
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
         });
 
-        requestAnimationFrame(animate);
+        (function animateCursor() {
+            currentX += (mouseX - currentX) * 0.12;
+            currentY += (mouseY - currentY) * 0.12;
+            cursorGlow.style.left = currentX + 'px';
+            cursorGlow.style.top = currentY + 'px';
+            if (!prefersReducedMotion) requestAnimationFrame(animateCursor);
+        })();
     }
 
-    /* ---- Modal Logic ---- */
+    /* --------- 2. Hearts Canvas --------- */
+    const canvas = document.getElementById('hearts-canvas');
+    const ctx = canvas.getContext('2d');
+    let hearts = [];
+    let isAnimatingHearts = false;
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function triggerHearts() {
+        const originX = window.innerWidth / 2;
+        const originY = window.innerHeight - 80;
+
+        for (let i = 0; i < 26; i++) {
+            hearts.push({
+                x: originX,
+                y: originY,
+                size: Math.random() * 20 + 6,
+                speedX: (Math.random() - 0.5) * 12,
+                speedY: Math.random() * -15 - 6,
+                opacity: 1,
+                rotation: Math.random() * 360
+            });
+        }
+
+        if (!isAnimatingHearts) {
+            isAnimatingHearts = true;
+            animateHearts();
+        }
+    }
+
+    function animateHearts() {
+        if (hearts.length === 0) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            isAnimatingHearts = false;
+            return;
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hearts.forEach((h, i) => {
+            h.x += h.speedX;
+            h.y += h.speedY;
+            h.speedY += 0.35;
+            h.opacity -= 0.012;
+
+            ctx.save();
+            ctx.translate(h.x, h.y);
+            ctx.rotate(h.rotation);
+            ctx.fillStyle = 'rgba(255,0,60,' + h.opacity + ')';
+            ctx.font = h.size + 'px serif';
+            ctx.fillText('❤', -h.size / 2, h.size / 2);
+            ctx.restore();
+
+            if (h.opacity <= 0) hearts.splice(i, 1);
+        });
+        requestAnimationFrame(animateHearts);
+    }
+    window.triggerHearts = triggerHearts;
+
+    /* --------- 3. Modal + Scroll Lock --------- */
+    const modal = document.getElementById('input-modal');
+    const backdrop = document.getElementById('modal-backdrop');
     const dateInput = document.getElementById('date-input');
     const form = document.getElementById('modal-form');
     const fields = document.getElementById('dynamic-fields');
     const title = document.getElementById('modal-title');
-    const modal = document.getElementById('input-modal');
 
-    function openModal(type) {
-        // 设置默认时间为当前本地时间 (YYYY-MM-DDTHH:MM)
+    function syncNowToDateInput() {
+        if (!dateInput) return;
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        dateInput.value = now.toISOString().slice(0,16);
+        dateInput.value = now.toISOString().slice(0, 16);
+    }
 
+    function openModal(type) {
+        if (!modal) return;
+
+        syncNowToDateInput();
+        fields.innerHTML = '';
+        form.action = '';
+        form.onsubmit = null;
+
+        backdrop.classList.add('active');
         modal.showModal();
+        document.documentElement.classList.add('modal-open');
+        if (lenisInstance) lenisInstance.stop();
 
-        if(type === 'entry') {
+        if (type === 'entry') {
             form.action = "{{ url_for('add_entry') }}";
-            title.innerText = "THOUGHTS";
-            fields.innerHTML = `<textarea name="content" rows="5" class="modal-field" placeholder="Write something..." style="resize:vertical;"></textarea>`;
-        } else if(type === 'keydate') {
-            form.action = "{{ url_for('add_keydate') }}";
-            title.innerText = "KEY DATE";
-            // [Fix] 移除 type="hidden" 的 date，直接使用上面的 datetime-local，但在 JS 提交时我们需要确保 keydate 使用同一字段名
-            // 后端 add_keydate 现在读取 'date' 字段，我们可以做一个隐藏域同步，或者让后端读取 custom_date
-            // 为了最小化后端改动，我们这里加一个隐藏域，在 submit 时同步值
+            title.innerText = 'THOUGHT';
             fields.innerHTML = `
-                <input name="title" placeholder="Event Title" class="modal-field" required>
+                <textarea
+                    name="content"
+                    rows="5"
+                    class="modal-field"
+                    placeholder="..."
+                    style="resize:vertical;"
+                    required
+                ></textarea>
+            `;
+        } else if (type === 'keydate') {
+            form.action = "{{ url_for('add_keydate') }}";
+            title.innerText = 'MEMORY';
+            fields.innerHTML = `
+                <input
+                    name="title"
+                    placeholder="Title"
+                    class="modal-field"
+                    required
+                >
                 <input type="hidden" name="date" id="kd-hidden">
             `;
-            form.onsubmit = () => {
-                if(type === 'keydate') {
-                    // [Fix] 传递完整的时间字符串，不再分割 split('T')[0]
-                    document.getElementById('kd-hidden').value = dateInput.value;
-                }
-            }
-        } else if(type === 'photo') {
+            form.onsubmit = function () {
+                const hidden = document.getElementById('kd-hidden');
+                if (hidden && dateInput) hidden.value = dateInput.value;
+            };
+        } else if (type === 'photo') {
             form.action = "{{ url_for('add_photo') }}";
-            title.innerText = "VISUAL";
+            title.innerText = 'VISUAL';
             fields.innerHTML = `
-                <input type="file" name="photo" class="modal-field" style="padding:10px; height:auto;">
-                <input name="caption" placeholder="Caption" class="modal-field">
+                <input
+                    type="file"
+                    name="photo"
+                    class="modal-field"
+                    accept="image/*"
+                    required
+                >
+                <input
+                    name="caption"
+                    placeholder="Caption"
+                    class="modal-field"
+                    style="margin-top:6px"
+                >
             `;
         }
+    }
+
+    function closeModal() {
+        if (!modal) return;
+        backdrop.classList.remove('active');
+        modal.close();
+        document.documentElement.classList.remove('modal-open');
+        if (lenisInstance) lenisInstance.start();
+    }
+
+    if (backdrop) backdrop.addEventListener('click', closeModal);
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+
+    /* --------- 4. Lenis 平滑滚动 --------- */
+    if (!prefersReducedMotion && typeof Lenis !== 'undefined') {
+        const lenis = new Lenis({
+            lerp: 0.12,
+            smoothWheel: true,
+            smoothTouch: false,
+            wheelMultiplier: 1.1
+        });
+        lenisInstance = lenis;
+
+        function raf(time) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+    }
+
+    /* --------- 5. GSAP Reveal & 视差，去掉易抖动属性 --------- */
+    if (!prefersReducedMotion && typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+        gsap.registerPlugin(ScrollTrigger);
+
+        if (lenisInstance) {
+            lenisInstance.on('scroll', ScrollTrigger.update);
+            ScrollTrigger.scrollerProxy(document.body, {
+                scrollTop(value) {
+                    return arguments.length ? lenisInstance.scrollTo(value) : window.scrollY || window.pageYOffset;
+                },
+                getBoundingClientRect() {
+                    return { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight };
+                }
+            });
+        }
+
+        const rows = document.querySelectorAll('.timeline-row');
+        rows.forEach((row) => {
+            const timeCol = row.querySelector('.time-wrapper');
+            const contentCol = row.querySelector('.content-wrapper');
+            const dot = row.querySelector('.axis-dot');
+            const photo = row.querySelector('.photo-frame');
+            const isEven = row.classList.contains('even');
+
+            const tl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: row,
+                    start: 'top 80%',
+                    end: 'bottom 40%',
+                    toggleActions: 'play none none reverse'
+                }
+            });
+
+            tl.fromTo(
+                timeCol,
+                { opacity: 0, y: 26 },
+                { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out' },
+                0
+            ).fromTo(
+                contentCol,
+                { opacity: 0, y: 32 },
+                { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' },
+                0.05
+            ).fromTo(
+                dot,
+                { scale: 0.7, opacity: 0.5 },
+                { scale: 1, opacity: 1, duration: 0.6, ease: 'back.out(1.7)' },
+                0.1
+            );
+
+            if (photo) {
+                gsap.to(photo, {
+                    y: isEven ? -14 : 14,
+                    ease: 'none',
+                    scrollTrigger: {
+                        trigger: row,
+                        start: 'top bottom',
+                        end: 'bottom top',
+                        scrub: true
+                    }
+                });
+            }
+        });
+
+        ScrollTrigger.addEventListener('refresh', () => {
+            if (lenisInstance && typeof lenisInstance.update === 'function') {
+                lenisInstance.update();
+            }
+        });
+        ScrollTrigger.refresh();
+    } else {
+        document.querySelectorAll('.time-wrapper, .content-wrapper').forEach(el => {
+            el.style.opacity = 1;
+            el.style.transform = 'none';
+        });
+    }
+
+    /* --------- 6. 高亮逻辑：保证鼠标在文本 / 图片 / 纪念日 / 红点处都能点亮时间 --------- */
+    const rows = document.querySelectorAll('.timeline-row');
+    rows.forEach((row) => {
+        const interactiveParts = row.querySelectorAll('.entry-card, .axis-dot, .time-wrapper');
+
+        interactiveParts.forEach((el) => {
+            el.addEventListener('mouseenter', () => {
+                row.classList.add('timeline-row--active');
+                if (cursorGlow) cursorGlow.classList.add('cursor-glow--active');
+            });
+            el.addEventListener('mouseleave', () => {
+                row.classList.remove('timeline-row--active');
+                if (cursorGlow) cursorGlow.classList.remove('cursor-glow--active');
+            });
+        });
+    });
+
+    /* --------- 7. 磁性效果 ---------- */
+    function initMagneticElements() {
+        if (typeof gsap === 'undefined') return;
+        const magneticItems = document.querySelectorAll('[data-magnetic]');
+        magneticItems.forEach((item) => {
+            const strength = parseFloat(item.dataset.magneticStrength || '0.25');
+            let bounds;
+
+            function onMouseMove(e) {
+                if (!bounds) bounds = item.getBoundingClientRect();
+                const relX = e.clientX - (bounds.left + bounds.width / 2);
+                const relY = e.clientY - (bounds.top + bounds.height / 2);
+
+                gsap.to(item, {
+                    x: relX * strength,
+                    y: relY * strength,
+                    duration: 0.5,
+                    ease: 'power3.out'
+                });
+            }
+
+            function reset() {
+                bounds = null;
+                gsap.to(item, {
+                    x: 0,
+                    y: 0,
+                    duration: 0.8,
+                    ease: 'elastic.out(1.1, 0.4)'
+                });
+            }
+
+            item.addEventListener('mouseenter', () => {
+                bounds = item.getBoundingClientRect();
+                window.addEventListener('mousemove', onMouseMove);
+            });
+
+            item.addEventListener('mouseleave', () => {
+                window.removeEventListener('mousemove', onMouseMove);
+                reset();
+            });
+        });
+    }
+    initMagneticElements();
+
+    // 让 dock / 轴也触发 cursor glow
+    if (cursorGlow) {
+        document.querySelectorAll('.dock-btn, .axis-dot').forEach(el => {
+            el.addEventListener('mouseenter', () => cursorGlow.classList.add('cursor-glow--active'));
+            el.addEventListener('mouseleave', () => cursorGlow.classList.remove('cursor-glow--active'));
+        });
     }
 </script>
 {% endblock %}

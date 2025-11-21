@@ -13,6 +13,8 @@ db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    app.jinja_env.auto_reload = True
 
     app.config.from_mapping(
         SECRET_KEY="your-secret-key",

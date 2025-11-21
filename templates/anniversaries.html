@@ -1,104 +1,637 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-    .dashboard {
-        max-width: 1200px; margin: 0 auto; padding: 160px 2rem;
-        display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 2px; /* 极细的网格线效果 */
-        background: rgba(255,255,255,0.05); /* 用于形成网格缝隙的底色 */
-        border: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .day-card {
-        background: #050505; /* 卡片全黑 */
-        padding: 3rem 2rem;
+    main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 180px 2rem 160px;
         position: relative;
-        transition: background 0.4s;
-        aspect-ratio: 1/1; /* 正方形卡片，更具设计感 */
-        display: flex; flex-direction: column; justify-content: space-between;
+        z-index: 2;
     }
 
-    .day-card:hover { background: #0a0a0a; }
-
-    .meta-top {
-        display: flex; justify-content: space-between; align-items: flex-start;
+    html.modal-open,
+    html.modal-open body {
+        overflow: hidden;
     }
 
-    /* 标题 */
-    .day-title {
-        font-family: 'Inter', sans-serif; font-size: 1rem; font-weight: 400; color: #888;
+    .cursor-glow {
+        position: fixed;
+        width: 320px;
+        height: 320px;
+        background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0) 70%);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 1;
+        mix-blend-mode: screen;
+        transition: opacity 0.35s ease, transform 0.35s ease, background 0.35s ease;
+        opacity: 0.85;
     }
 
-    /* 状态圆点 (代替丑陋的横条) */
-    .status-dot {
-        width: 8px; height: 8px; border-radius: 50%; background: #333;
-    }
-    .status-past { background: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
-    .status-future { background: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
-    .status-today { background: var(--neon-pink); animation: pulse 2s infinite; }
-
-    /* 数字区域 */
-    .count-area { text-align: right; }
-    .count-num {
-        font-family: 'Space Grotesk', sans-serif; font-size: 5rem; font-weight: 700;
-        line-height: 0.9; letter-spacing: -3px; color: white;
-        /* 细微的渐变，增加质感 */
-        background: linear-gradient(180deg, #fff 0%, #aaa 100%);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .count-label {
-        font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #444;
-        text-transform: uppercase; margin-top: 1rem; letter-spacing: 2px;
+    .cursor-glow--active {
+        transform: translate(-50%, -50%) scale(1.1);
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0) 70%);
+        opacity: 1;
     }
 
-    /* 日期水印 */
-    .date-stamp {
-        position: absolute; bottom: 2rem; left: 2rem;
-        font-family: 'JetBrains Mono'; font-size: 0.7rem; color: #333;
-        transform: rotate(-90deg); transform-origin: left bottom;
+    @media (prefers-reduced-motion: reduce) {
+        .cursor-glow { display: none; }
     }
 
-    /* 删除按钮 */
-    .delete-wrap { position: absolute; top: 1rem; right: 1rem; opacity: 0; transition: 0.2s; }
-    .day-card:hover .delete-wrap { opacity: 1; }
-    .btn-x { background: none; border: none; color: #333; cursor: pointer; font-size: 1.2rem; }
-    .btn-x:hover { color: #a00; }
+    /* ---------- 纪念日卡片列表 ---------- */
+    .anniv-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.8rem;
+    }
 
-    @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+    .anniv-card {
+        position: relative;
+        display: grid;
+        grid-template-columns: 70px minmax(0, 1fr);
+        gap: 2.2rem;
+        padding: 1.8rem 2.2rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: radial-gradient(circle at 0% 0%, rgba(255,255,255,0.06), #050505 55%);
+        box-shadow: 0 26px 60px rgba(0,0,0,0.85);
+        overflow: hidden;
+        cursor: default;
+        transition:
+            transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+            box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+            border-color 0.4s ease,
+            background 0.6s ease;
+    }
+
+    .anniv-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 10% 0%, rgba(255,255,255,0.14), transparent 50%),
+            radial-gradient(circle at 90% 100%, rgba(255,255,255,0.08), transparent 60%);
+        mix-blend-mode: soft-light;
+        opacity: 0;
+        transition: opacity 0.7s ease;
+        pointer-events: none;
+    }
+
+    .anniv-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 40px 100px rgba(0,0,0,0.95);
+        border-color: rgba(255,255,255,0.3);
+    }
+
+    .anniv-card:hover::before {
+        opacity: 1;
+    }
+
+    /* 左侧竖排日期 */
+    .anniv-date {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.9rem;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        color: #f0f0f0;
+    }
+
+    .anniv-date-main {
+        font-size: 1.1rem;
+        letter-spacing: 0.28em;
+    }
+
+    .anniv-date-time {
+        margin-top: 0.7rem;
+        font-size: 0.7rem;
+        opacity: 0.75;
+    }
+
+    /* 右侧信息 */
+    .anniv-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        justify-content: center;
+    }
+
+    .anniv-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.3rem;
+        letter-spacing: 0.02em;
+        color: #f5f5f5;
+    }
+
+    .anniv-subline {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #b3b3b3;
+    }
+
+    .anniv-days {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 2.6rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: var(--neon-pink);
+    }
+
+    .anniv-tagline {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.9rem;
+        color: #e0e0e0;
+        opacity: 0.9;
+    }
+
+    /* Dock */
+    .dock {
+        position: fixed;
+        bottom: 3rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 200;
+    }
+    .dock-inner {
+        background: rgba(5,5,5,0.7);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 999px;
+        padding: 0.85rem 1.9rem;
+        display: flex;
+        gap: 1.9rem;
+        align-items: center;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.9);
+    }
+    .dock-btn {
+        background: none;
+        border: none;
+        color: #b0b0b0;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 0.75rem;
+        cursor: pointer;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        padding: 0;
+        transition: color 0.25s ease, transform 0.25s ease, text-shadow 0.25s ease;
+    }
+    .dock-btn:hover {
+        color: #ffffff;
+        transform: translateY(-2px);
+        text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+    .miss-you-btn {
+        color: var(--neon-pink);
+        font-size: 1.2rem;
+        padding: 0 0.5rem;
+        opacity: 0.9;
+    }
+    .miss-you-btn:hover {
+        transform: scale(1.15);
+        filter: drop-shadow(0 0 9px var(--neon-pink));
+    }
+
+    /* Modal（只用于新增纪念日） */
+    .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.82);
+        z-index: 998;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s ease;
+        backdrop-filter: blur(8px);
+    }
+    .modal-backdrop.active {
+        opacity: 1;
+        pointer-events: all;
+    }
+    dialog {
+        border: 1px solid #222;
+        background: #050505;
+        color: #fff;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        margin: 0;
+        transform: translate(-50%, -40%) scale(0.95);
+        opacity: 0;
+        padding: 3rem;
+        border-radius: 16px;
+        box-shadow: 0 40px 80px #000;
+        width: min(420px, calc(100vw - 3rem));
+        max-height: min(540px, calc(100vh - 4rem));
+        box-sizing: border-box;
+        overflow-x: hidden;
+        overflow-y: auto;
+        z-index: 999;
+    }
+    dialog[open] {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+
+    .modal-title {
+        margin: 0 0 2rem;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 300;
+        font-size: 1.4rem;
+        letter-spacing: -1px;
+    }
+
+    .modal-close {
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        background: none;
+        border: none;
+        color: #666;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .modal-field {
+        width: 100%;
+        background: #101010;
+        border: 1px solid #242424;
+        color: #f0f0f0;
+        padding: 14px;
+        font-family: 'Inter', sans-serif;
+        border-radius: 8px;
+        transition: 0.3s ease;
+        box-sizing: border-box;
+    }
+    .modal-field::placeholder { color: #626262; }
+    .modal-field:focus {
+        border-color: #555;
+        outline: none;
+        background: #151515;
+    }
+    .modal-save-btn {
+        width: 100%;
+        background: #ffffff;
+        color: #000000;
+        border: none;
+        padding: 14px;
+        font-weight: 700;
+        font-family: 'Space Grotesk', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.24em;
+        cursor: pointer;
+        margin-top: 0.8rem;
+        border-radius: 8px;
+        transition: background 0.3s ease, transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .modal-save-btn:hover {
+        background: #dcdcdc;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.7);
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+        main { padding: 140px 1.5rem 140px; }
+
+        .anniv-card {
+            grid-template-columns: 52px minmax(0,1fr);
+            padding: 1.4rem 1.6rem;
+        }
+        .anniv-date {
+            font-size: 0.8rem;
+        }
+        .anniv-days {
+            font-size: 2.2rem;
+        }
+
+        dialog {
+            padding: 2.2rem 1.8rem;
+            max-height: calc(100vh - 2rem);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        * {
+            scroll-behavior: auto !important;
+            animation-duration: 0.001ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.001ms !important;
+        }
+    }
 </style>
 
-<div class="dashboard">
-    {% for item in dates %}
-        {% set diff, state = get_days_diff(item.date) %}
-        <div class="day-card">
-            <div class="delete-wrap">
-                <form action="/delete/keydate/{{ item.id }}" method="post" onsubmit="return confirm('Delete?')">
-                    <button class="btn-x">×</button>
-                </form>
-            </div>
+<div class="cursor-glow" id="cursor-glow"></div>
+<canvas id="hearts-canvas" style="position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:995;"></canvas>
 
-            <div class="meta-top">
-                <div class="day-title">{{ item.title }}</div>
-                <div class="status-dot status-{{ state }}"></div>
-            </div>
-
-            <div class="date-stamp">{{ item.date }}</div>
-
-            <div class="count-area">
-                <div class="count-num">
-                    {% if state == 'today' %}0{% else %}{{ diff }}{% endif %}
+<main aria-label="Anniversary collection">
+    <section class="anniv-list">
+        {% for k in dates %}
+            {% set diff, state = get_days_diff(k.date) %}
+            <article class="anniv-card" data-magnetic data-magnetic-strength="0.18">
+                <div class="anniv-date">
+                    <div>
+                        <div class="anniv-date-main">
+                            {{ k.date.strftime('%Y') }}·{{ k.date.strftime('%m') }}·{{ k.date.strftime('%d') }}
+                        </div>
+                        <div class="anniv-date-time">
+                            {{ k.date.strftime('%H:%M') }}
+                        </div>
+                    </div>
                 </div>
-                <div class="count-label">
-                    {% if state == 'past' %}Days Since{% elif state == 'future' %}Days Until{% else %}Happening{% endif %}
-                </div>
-            </div>
-        </div>
-    {% endfor %}
 
-    {% if not dates %}
-        <div style="grid-column: 1/-1; padding: 4rem; text-align: center; color: #444; font-family: 'Space Grotesk';">
-            NOTHING RECORDED YET.
-        </div>
-    {% endif %}
+                <div class="anniv-meta">
+                    <div class="anniv-subline">
+                        {% if state == 'past' %}
+                            DAYS SINCE
+                        {% elif state == 'future' %}
+                            DAYS LEFT
+                        {% else %}
+                            TODAY
+                        {% endif %}
+                    </div>
+
+                    <div class="anniv-days">
+                        {% if state == 'today' %}
+                            0
+                        {% else %}
+                            {{ diff }}
+                        {% endif %}
+                    </div>
+
+                    <div class="anniv-title">
+                        {{ k.title }}
+                    </div>
+
+                    <div class="anniv-tagline">
+                        {% if state == 'past' %}
+                            我们已经一起走过了这些天。
+                        {% elif state == 'future' %}
+                            离这一天还有这些期待。
+                        {% else %}
+                            正在发生的此刻。
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
+    </section>
+</main>
+
+<div class="dock" aria-label="Anniversary controls">
+    <div class="dock-inner">
+        <button type="button" onclick="openModal()" class="dock-btn" data-magnetic data-magnetic-strength="0.22">
+            DATE
+        </button>
+        <button type="button" onclick="triggerHearts()" class="dock-btn miss-you-btn" aria-label="Send hearts" data-magnetic data-magnetic-strength="0.3">
+            ❤
+        </button>
+    </div>
 </div>
+
+<div id="modal-backdrop" class="modal-backdrop"></div>
+<dialog id="input-modal" aria-modal="true" aria-labelledby="modal-title">
+    <button class="modal-close" type="button" onclick="closeModal()" aria-label="Close">&times;</button>
+
+    <h3 id="modal-title" class="modal-title">MEMORY</h3>
+
+    <form id="modal-form" method="post" enctype="multipart/form-data">
+        <label style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.18em; color:#6a6a6a;">
+            When
+            <input
+                type="datetime-local"
+                name="custom_date"
+                id="date-input"
+                class="modal-field"
+                style="margin-top:0.4rem; font-size:0.8rem;"
+            >
+        </label>
+
+        <input
+            name="title"
+            placeholder="Title"
+            class="modal-field"
+            required
+            style="margin-top:1rem;"
+        >
+        <input type="hidden" name="date" id="kd-hidden">
+
+        <button type="submit" class="modal-save-btn">SAVE</button>
+    </form>
+</dialog>
+
+<script src="https://unpkg.com/@studio-freight/lenis@1.1.18/bundled/lenis.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+<script>
+    const prefersReducedMotion =
+        window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let lenisInstance = null;
+
+    const cursorGlow = document.getElementById('cursor-glow');
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let currentX = mouseX;
+    let currentY = mouseY;
+
+    if (cursorGlow) {
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        (function animateCursor() {
+            currentX += (mouseX - currentX) * 0.12;
+            currentY += (mouseY - currentY) * 0.12;
+            cursorGlow.style.left = currentX + 'px';
+            cursorGlow.style.top = currentY + 'px';
+            if (!prefersReducedMotion) requestAnimationFrame(animateCursor);
+        })();
+    }
+
+    const canvas = document.getElementById('hearts-canvas');
+    const ctx = canvas.getContext('2d');
+    let hearts = [];
+    let isAnimatingHearts = false;
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function triggerHearts() {
+        const originX = window.innerWidth / 2;
+        const originY = window.innerHeight - 80;
+
+        for (let i = 0; i < 26; i++) {
+            hearts.push({
+                x: originX,
+                y: originY,
+                size: Math.random() * 20 + 6,
+                speedX: (Math.random() - 0.5) * 12,
+                speedY: Math.random() * -15 - 6,
+                opacity: 1,
+                rotation: Math.random() * 360
+            });
+        }
+
+        if (!isAnimatingHearts) {
+            isAnimatingHearts = true;
+            animateHearts();
+        }
+    }
+    function animateHearts() {
+        if (hearts.length === 0) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            isAnimatingHearts = false;
+            return;
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hearts.forEach((h, i) => {
+            h.x += h.speedX;
+            h.y += h.speedY;
+            h.speedY += 0.35;
+            h.opacity -= 0.012;
+
+            ctx.save();
+            ctx.translate(h.x, h.y);
+            ctx.rotate(h.rotation);
+            ctx.fillStyle = 'rgba(255,0,60,' + h.opacity + ')';
+            ctx.font = h.size + 'px serif';
+            ctx.fillText('❤', -h.size / 2, h.size / 2);
+            ctx.restore();
+
+            if (h.opacity <= 0) hearts.splice(i, 1);
+        });
+        requestAnimationFrame(animateHearts);
+    }
+    window.triggerHearts = triggerHearts;
+
+    // Modal
+    const modal = document.getElementById('input-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+    const dateInput = document.getElementById('date-input');
+    const form = document.getElementById('modal-form');
+
+    function syncNowToDateInput() {
+        if (!dateInput) return;
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        dateInput.value = now.toISOString().slice(0, 16);
+    }
+
+    function openModal() {
+        syncNowToDateInput();
+        document.documentElement.classList.add('modal-open');
+        if (lenisInstance) lenisInstance.stop();
+        backdrop.classList.add('active');
+        modal.showModal();
+
+        const hidden = document.getElementById('kd-hidden');
+        if (hidden && dateInput) hidden.value = dateInput.value;
+    }
+    function closeModal() {
+        backdrop.classList.remove('active');
+        modal.close();
+        document.documentElement.classList.remove('modal-open');
+        if (lenisInstance) lenisInstance.start();
+    }
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+    backdrop.addEventListener('click', closeModal);
+
+    form.onsubmit = function () {
+        const hidden = document.getElementById('kd-hidden');
+        if (hidden && dateInput) hidden.value = dateInput.value;
+        form.action = "{{ url_for('add_keydate') }}";
+    };
+
+    // Lenis
+    if (!prefersReducedMotion && typeof Lenis !== 'undefined') {
+        const lenis = new Lenis({
+            lerp: 0.12,
+            smoothWheel: true,
+            smoothTouch: false,
+            wheelMultiplier: 1.1
+        });
+        lenisInstance = lenis;
+
+        function raf(time) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+    }
+
+    // GSAP reveal：卡片淡入
+    if (!prefersReducedMotion && typeof gsap !== 'undefined') {
+        const cards = document.querySelectorAll('.anniv-card');
+        cards.forEach((card, index) => {
+            gsap.fromTo(card,
+                { opacity: 0, y: 40 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.7,
+                    delay: index * 0.05,
+                    ease: 'power3.out'
+                }
+            );
+        });
+    } else {
+        document.querySelectorAll('.anniv-card').forEach(c => {
+            c.style.opacity = 1;
+            c.style.transform = 'none';
+        });
+    }
+
+    // 磁性
+    function initMagneticElements() {
+        if (typeof gsap === 'undefined') return;
+        const magneticItems = document.querySelectorAll('[data-magnetic]');
+        magneticItems.forEach((item) => {
+            const strength = parseFloat(item.dataset.magneticStrength || '0.25');
+            let bounds;
+            function onMouseMove(e) {
+                if (!bounds) bounds = item.getBoundingClientRect();
+                const relX = e.clientX - (bounds.left + bounds.width / 2);
+                const relY = e.clientY - (bounds.top + bounds.height / 2);
+                gsap.to(item, {
+                    x: relX * strength,
+                    y: relY * strength,
+                    duration: 0.5,
+                    ease: 'power3.out'
+                });
+            }
+            function reset() {
+                bounds = null;
+                gsap.to(item, {
+                    x: 0,
+                    y: 0,
+                    duration: 0.8,
+                    ease: 'elastic.out(1.1, 0.4)'
+                });
+            }
+            item.addEventListener('mouseenter', () => {
+                bounds = item.getBoundingClientRect();
+                window.addEventListener('mousemove', onMouseMove);
+                if (cursorGlow) cursorGlow.classList.add('cursor-glow--active');
+            });
+            item.addEventListener('mouseleave', () => {
+                window.removeEventListener('mousemove', onMouseMove);
+                reset();
+                if (cursorGlow) cursorGlow.classList.remove('cursor-glow--active');
+            });
+        });
+    }
+    initMagneticElements();
+</script>
 {% endblock %}

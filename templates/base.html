@@ -20,6 +20,10 @@
             --neon-pink: #ff003c;
         }
 
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             background-color: var(--bg);
             color: var(--text-main);
@@ -30,10 +34,9 @@
         }
 
         /* ---- 影院级 SVG 噪点 (Cinematic Grain) ---- */
-        /* 这种方式生成的噪点是矢量计算的，永远不会有像素块 */
         .noise-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 9999; opacity: 0.06;
+            pointer-events: none; z-index: 999; opacity: 0.06;
             filter: url(#noiseFilter);
         }
 
@@ -42,16 +45,16 @@
             position: fixed; top: 0; width: 100%; height: 80px; z-index: 100;
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 3rem; box-sizing: border-box;
-            mix-blend-mode: difference; /* 高级感混合模式：让文字在白背景上变黑，黑背景上变白 */
+            mix-blend-mode: difference;
         }
 
         .nav-link {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px;
-            color: #888; text-decoration: none; margin-left: 2rem;
+            color: #aaaaaa; text-decoration: none; margin-left: 2rem;
             transition: color 0.3s ease;
         }
-        .nav-link:hover, .nav-link.active { color: #fff; }
+        .nav-link:hover, .nav-link.active { color: #ffffff; }
 
         .brand {
             font-family: 'Space Grotesk', sans-serif; font-weight: 700;
@@ -59,16 +62,81 @@
             text-decoration: none;
         }
 
-        /* 小窝标识 - 极简几何化 */
         .nest-badge {
             display: flex; align-items: center; gap: 10px;
             font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
-            color: white; opacity: 0.6; transition: opacity 0.3s;
+            color: white; opacity: 0.7; transition: opacity 0.3s;
         }
         .nest-badge:hover { opacity: 1; }
-        .nest-dot { width: 6px; height: 6px; background: var(--neon-pink); border-radius: 50%; box-shadow: 0 0 10px var(--neon-pink);}
+        .nest-dot {
+            width: 6px; height: 6px; background: var(--neon-pink); border-radius: 50%;
+            box-shadow: 0 0 12px var(--neon-pink);
+        }
 
-        @media (max-width: 768px) { header { padding: 0 1.5rem; } }
+        @media (max-width: 768px) {
+            header { padding: 0 1.5rem; }
+        }
+
+        /* ======== 电影感预加载器 ======== */
+        .preloader {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at 50% 20%, #151515 0%, #000 60%);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: all;
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .preloader--hidden {
+            opacity: 0;
+            transform: translateY(-2vh);
+            pointer-events: none;
+        }
+
+        .preloader-inner {
+            position: relative;
+            width: 1px;
+            height: 160px;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(255,255,255,0.35), rgba(255,255,255,0.02));
+            overflow: visible;
+        }
+
+        .preloader-dot {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 14px;
+            height: 14px;
+            border-radius: 999px;
+            background: var(--neon-pink);
+            box-shadow:
+                0 0 0 4px rgba(0,0,0,1),
+                0 0 24px var(--neon-pink);
+            animation: preloaderDot 1.4s ease-in-out infinite;
+        }
+
+        .preloader-label {
+            position: absolute;
+            top: 50%;
+            left: 32px;
+            transform: translateY(-50%);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: #f5f5f5;
+            opacity: 0.9;
+        }
+
+        @keyframes preloaderDot {
+            0%   { top: 0%; opacity: 0; }
+            10%  { opacity: 1; }
+            50%  { top: 90%; }
+            100% { top: 0%; opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -79,10 +147,19 @@
     </svg>
     <div class="noise-overlay"></div>
 
+    <!-- Preloader -->
+    <div id="preloader" class="preloader">
+        <div class="preloader-inner">
+            <div class="preloader-dot"></div>
+            <div class="preloader-label">JOURNAL.</div>
+        </div>
+    </div>
+
     <header>
         <a href="{{ url_for('index') }}" class="brand">JOURNAL.</a>
         <div style="display:flex; align-items:center;">
-            <a href="{{ url_for('anniversaries') }}" class="nav-link">Timeline</a> <div class="nest-badge" style="margin-left: 2rem;">
+            <a href="{{ url_for('anniversaries') }}" class="nav-link">Timeline</a>
+            <div class="nest-badge" style="margin-left: 2rem;">
                 <div class="nest-dot"></div>
                 <span>NEST</span>
             </div>
@@ -90,5 +167,17 @@
     </header>
 
     {% block content %}{% endblock %}
+
+    <script>
+        // 电影感预加载结束后淡出
+        window.addEventListener('load', function () {
+            const pre = document.getElementById('preloader');
+            if (!pre) return;
+            pre.classList.add('preloader--hidden');
+            setTimeout(() => {
+                pre.remove();
+            }, 900);
+        });
+    </script>
 </body>
 </html>
