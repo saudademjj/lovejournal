@@ -2,179 +2,213 @@
 {% block content %}
 <style>
     main {
-        max-width: 800px; margin: 0 auto; padding: 100px 1.5rem 150px;
+        max-width: 1000px; margin: 0 auto; padding: 180px 2rem 200px;
+    }
+
+    /* ---- Grid System Fix ---- */
+    .timeline-grid {
+        display: grid;
+        /* 固定三列：内容(1fr) - 中轴(60px) - 内容(1fr) */
+        grid-template-columns: 1fr 60px 1fr;
+        row-gap: 0;
+    }
+
+    .timeline-row {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1fr 60px 1fr; /* 继承父网格 */
+        align-items: flex-start;
         position: relative;
+        padding-bottom: 6rem;
     }
 
-    /* ---- Sidebar Navigation (Right) ---- */
-    .year-nav {
-        position: fixed; top: 50%; right: 1.5rem; transform: translateY(-50%);
-        display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end;
-        z-index: 50;
-    }
-    .year-link {
-        font-family: 'Space Grotesk'; font-size: 0.85rem; color: var(--text-muted);
-        text-decoration: none; padding: 2px 8px; border-radius: 4px;
-        transition: 0.3s; border-right: 2px solid transparent;
-    }
-    .year-link:hover { color: white; border-right-color: var(--accent-future); }
-
-    /* ---- Timeline Structure ---- */
-    .timeline-container { position: relative; }
-
-    /* Center Line */
-    .center-line {
-        position: absolute; top: 0; bottom: 0; left: 50%; width: 1px;
-        background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent);
-        transform: translateX(-0.5px);
+    /* [Fix] 强制中轴容器永远在第2列，且内容居中 */
+    .axis-container {
+        grid-column: 2 !important;
+        position: relative; height: 100%;
+        display: flex; justify-content: center; /* 水平居中 */
+        width: 100%;
     }
 
-    .timeline-node {
-        display: flex; align-items: flex-start; margin-bottom: 3.5rem; position: relative;
-        /* Scroll Anchor for Year Navigation */
-        scroll-margin-top: 100px;
+    /* 中轴线 */
+    .axis-line {
+        position: absolute; top: 0; bottom: 0; width: 1px;
+        background: rgba(255,255,255,0.08);
+        left: 50%; transform: translateX(-50%); /* 确保线在正中间 */
     }
 
-    /* Layout Alternation */
-    .node-content { width: 44%; position: relative; }
-    .node-meta { width: 44%; padding: 0 2rem; font-family: 'Space Grotesk'; font-size: 0.8rem; color: var(--text-muted); display: flex; flex-direction: column; justify-content: center; }
+    /* 圆点 */
+    .axis-dot {
+        width: 8px; height: 8px; background: white; border-radius: 50%;
+        position: sticky;
+        top: 300px; /* 视觉停留位置 */
+        margin-top: 6px; /* 初始顶部偏移，对齐文字 */
+        z-index: 10;
+        box-shadow: 0 0 0 4px var(--bg);
+        transition: transform 0.3s;
+    }
+    .timeline-row:hover .axis-dot { transform: scale(1.5); background: var(--text-main); }
 
-    .timeline-node:nth-child(odd) .node-content { margin-left: auto; order: 2; }
-    .timeline-node:nth-child(odd) .node-meta { text-align: right; order: 1; }
+    /* ---- Content Layout Logic (Swapping Sides) ---- */
+    .content-wrapper { position: relative; width: 100%; }
+    .time-wrapper { width: 100%; }
 
-    .timeline-node:nth-child(even) .node-content { margin-right: auto; order: 1; text-align: right; } /* Align content inside card */
-    .timeline-node:nth-child(even) .node-meta { text-align: left; order: 2; }
+    /* 偶数行 (Even): 时间左，内容右 */
+    .timeline-row.even .content-wrapper { grid-column: 3; padding-left: 3rem; text-align: left; }
+    .timeline-row.even .time-wrapper { grid-column: 1; text-align: right; padding-right: 1.5rem; }
 
-    /* The Dot */
-    .dot {
-        position: absolute; left: 50%; top: 20px; width: 5px; height: 5px;
-        background: white; border-radius: 50%; transform: translateX(-50%);
-        box-shadow: 0 0 8px rgba(255,255,255,0.8); z-index: 2;
+    /* 奇数行 (Odd): 内容左，时间右 */
+    .timeline-row.odd .content-wrapper { grid-column: 1; padding-right: 3rem; text-align: right; }
+    .timeline-row.odd .time-wrapper { grid-column: 3; text-align: left; padding-left: 1.5rem; }
+
+    /* 修正奇数行内容内部元素的对齐，保持工业感 */
+    .timeline-row.odd .card-actions { right: auto; left: 0; }
+
+    /* ---- Components (Style Preserved) ---- */
+    .time-label {
+        font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #555;
+        margin-top: 2px; transition: 0.3s;
+    }
+    .timeline-row:hover .time-label { color: white; letter-spacing: 1px; }
+
+    .entry-card {
+        position: relative; display: inline-block;
+        max-width: 90%;
     }
 
-    /* ---- Content Cards (Glass) ---- */
-    .card {
-        background: var(--glass); border: 1px solid var(--glass-border);
-        backdrop-filter: blur(16px); padding: 1.25rem; border-radius: 18px;
-        color: rgba(255,255,255,0.9); font-size: 0.95rem; line-height: 1.6;
-        transition: transform 0.3s; text-align: left; /* Force text left inside cards */
+    .photo-frame {
+        overflow: hidden; border-radius: 4px; margin-bottom: 1rem;
+        border: 1px solid rgba(255,255,255,0.1);
+        transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
     }
-    .card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.2); }
+    .photo-frame img { display: block; width: 100%; height: auto; filter: grayscale(20%); transition: 0.5s; }
+    .entry-card:hover .photo-frame { transform: scale(1.02); border-color: white; }
+    .entry-card:hover img { filter: grayscale(0%); }
 
-    /* Image Styling */
-    .card-img { width: 100%; border-radius: 12px; display: block; margin-bottom: 0.5rem; }
-    .card-caption { color: var(--text-muted); font-size: 0.85rem; }
-
-    /* Key Date Styling on Timeline (Subtle, No Badge) */
-    .keydate-display { text-align: center; padding: 0.5rem 0; }
-    .keydate-title { font-size: 1rem; color: var(--text-muted); margin-bottom: 0.2rem; }
-    .keydate-number { font-family: 'Space Grotesk'; font-size: 1.8rem; font-weight: 700; line-height: 1; }
-    .text-past { background: linear-gradient(to right, #fff, var(--accent-past)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .text-future { background: linear-gradient(to right, #fff, var(--accent-future)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-    /* Delete Button (Hidden unless hover) */
-    .delete-btn {
-        position: absolute; top: 10px; right: 10px; opacity: 0; cursor: pointer;
-        background: none; border: none; color: rgba(255,255,255,0.3); font-size: 1.2rem;
+    .text-entry {
+        font-family: 'Inter', sans-serif; font-size: 0.95rem; line-height: 1.6;
+        color: #ccc; background: transparent; border: none;
     }
-    .card:hover .delete-btn { opacity: 1; }
-    .delete-btn:hover { color: #ff4d4d; }
 
-    /* ---- Docker Bar (Bottom) ---- */
-    .docker {
-        position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
-        background: rgba(15,15,15,0.8); backdrop-filter: blur(20px);
-        border: 1px solid rgba(255,255,255,0.15); padding: 0.6rem 1rem; border-radius: 24px;
-        display: flex; gap: 1.5rem; z-index: 100; box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    .keydate-block {
+        border: 1px solid rgba(255,255,255,0.15); padding: 1.5rem 2rem;
+        display: inline-flex; flex-direction: column; gap: 0.5rem;
+        background: rgba(255,255,255,0.02); backdrop-filter: blur(10px);
+        min-width: 200px;
     }
-    .dock-icon {
-        background: transparent; border: none; color: var(--text-muted); cursor: pointer;
-        display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.7rem;
-        transition: 0.3s;
+    .keydate-days {
+        font-family: 'Space Grotesk'; font-size: 2.5rem; font-weight: 700; line-height: 1;
+        background: linear-gradient(to bottom right, #fff, #888);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
-    .dock-icon svg { width: 24px; height: 24px; fill: currentColor; }
-    .dock-icon:hover { color: white; transform: translateY(-3px); }
+    .keydate-label { font-family: 'JetBrains Mono'; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: #555; }
 
-    /* ---- Modal ---- */
-    dialog {
-        background: #111; border: 1px solid var(--glass-border); color: white;
-        border-radius: 20px; padding: 2rem; width: 90%; max-width: 400px;
-        box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+    .btn-delete {
+        position: absolute; top: -10px; right: -20px;
+        opacity: 0; color: #444; cursor: pointer; background: none; border: none; font-size: 1.2rem; transition: 0.2s;
     }
-    dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
-    input, textarea {
-        width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
-        color: white; padding: 0.8rem; border-radius: 10px; margin-bottom: 1rem; font-family: inherit;
-    }
-    input[type="datetime-local"] { color-scheme: dark; } /* Browser native dark calendar */
+    .timeline-row.odd .btn-delete { right: auto; left: -20px; }
+    .entry-card:hover .btn-delete { opacity: 1; }
+    .btn-delete:hover { color: var(--neon-pink); }
 
-    @media (max-width: 700px) {
-        .year-nav { display: none; } /* Hide sidebar on mobile */
-        .node-content { width: 85%; } .node-meta { display: none; } /* Hide side dates on mobile */
-        .center-line { left: 1.5rem; } .dot { left: 1.5rem; }
-        .timeline-node { flex-direction: column; padding-left: 3rem; }
-        .timeline-node:nth-child(odd) .node-content, .timeline-node:nth-child(even) .node-content {
-            margin: 0; width: 100%; text-align: left; order: 2;
+    /* Mobile */
+    @media (max-width: 768px) {
+        .timeline-grid { grid-template-columns: 20px 1fr; }
+        .timeline-row, .timeline-row.odd, .timeline-row.even { grid-template-columns: 20px 1fr; padding-bottom: 4rem; }
+        .axis-container { grid-column: 1 !important; justify-content: flex-start; width: auto; }
+        .axis-line { left: 9px; transform: none; } .axis-dot { margin-left: 5px; }
+
+        .content-wrapper, .timeline-row.odd .content-wrapper, .timeline-row.even .content-wrapper {
+            grid-column: 2; padding: 0 0 0 1.5rem; text-align: left;
         }
-        /* Mobile Date inside Card */
-        .mobile-date { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem; font-family: 'Space Grotesk'; }
+        .time-wrapper, .timeline-row.odd .time-wrapper, .timeline-row.even .time-wrapper {
+            grid-column: 2; text-align: left; padding-left: 1.5rem; margin-bottom: 0.5rem; display: block;
+        }
+        .entry-card { max-width: 100%; display: block; }
     }
-    @media (min-width: 701px) { .mobile-date { display: none; } }
+
+    /* [Fix] Modal Specific Styles for Alignment */
+    .modal-form-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1.2rem;
+    }
+    .modal-field {
+        width: 100%;
+        background: #222;
+        border: 1px solid #333;
+        color: white;
+        padding: 12px;
+        font-family: 'Inter', sans-serif;
+        box-sizing: border-box; /* 确保 padding 不撑破宽度 */
+        border-radius: 4px;
+    }
+    .modal-field:focus { outline: 1px solid white; border-color: white; }
+    .modal-save-btn {
+        width: 100%;
+        background: white;
+        color: black;
+        border: none;
+        padding: 14px;
+        font-weight: 700;
+        font-family: 'Space Grotesk', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        margin-top: 1rem;
+    }
+    .modal-save-btn:hover { background: #ccc; }
+
+    #hearts-canvas { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:999; }
 </style>
 
-<div class="year-nav">
-    {% for year in years %}
-    <a href="#year-{{ year }}" class="year-link">{{ year }}</a>
-    {% endfor %}
-</div>
+<canvas id="hearts-canvas"></canvas>
 
 <main>
-    <div class="timeline-container">
-        <div class="center-line"></div>
-
-        {% set current_year = namespace(value=None) %}
-
+    <div class="timeline-grid">
         {% for node in timeline %}
-
-            {% if node.timestamp.year != current_year.value %}
-                {% set current_year.value = node.timestamp.year %}
-                <div id="year-{{ node.timestamp.year }}" style="position: absolute; margin-top: -120px;"></div>
-            {% endif %}
-
-            <div class="timeline-node">
-                <div class="dot"></div>
-
-                <div class="node-meta">
-                    <span style="font-weight:700; font-size:1.1rem; color:white;">{{ node.timestamp.strftime('%m-%d') }}</span>
-                    <span>{{ node.timestamp.strftime('%H:%M') }}</span>
-                    <span>{{ node.timestamp.year }}</span>
+            <div class="timeline-row {{ 'odd' if loop.index is odd else 'even' }}">
+                <div class="time-wrapper">
+                    <div class="time-label">
+                        {{ node.timestamp.strftime('%Y.%m.%d') }}<br>
+                        <span style="opacity:0.4">{{ node.timestamp.strftime('%H:%M') }}</span>
+                    </div>
                 </div>
 
-                <div class="node-content">
-                    <div class="mobile-date">{{ node.timestamp.strftime('%Y-%m-%d %H:%M') }}</div>
+                <div class="axis-container">
+                    <div class="axis-line"></div>
+                    <div class="axis-dot"></div>
+                </div>
 
-                    <div class="card">
-                        <form action="/delete/{{ node.type }}/{{ node.item.id }}" method="post" onsubmit="return confirm('Delete?')">
-                            <button class="delete-btn">×</button>
+                <div class="content-wrapper">
+                    <div class="entry-card">
+                        <form action="/delete/{{ node.type }}/{{ node.item.id }}" method="post" onsubmit="return confirm('Archive this memory?')">
+                            <button class="btn-delete">×</button>
                         </form>
 
                         {% if node.type == 'entry' %}
-                            {{ node.item.content }}
+                            <div class="text-entry">{{ node.item.content }}</div>
 
                         {% elif node.type == 'photo' %}
-                            <img src="{{ url_for('uploaded_file', filename=node.item.filename) }}" class="card-img" loading="lazy">
-                            {% if node.item.caption %}<div class="card-caption">{{ node.item.caption }}</div>{% endif %}
+                            <div class="photo-frame">
+                                <img src="{{ url_for('uploaded_file', filename=node.item.filename) }}" loading="lazy">
+                            </div>
+                            {% if node.item.caption %}
+                                <div style="font-family:'JetBrains Mono'; font-size:0.7rem; color:#666; margin-top:0.5rem;">
+                                    // {{ node.item.caption }}
+                                </div>
+                            {% endif %}
 
                         {% elif node.type == 'keydate' %}
                             {% set diff, state = get_days_diff(node.item.date) %}
-                            <div class="keydate-display">
-                                <div class="keydate-title">{{ node.item.title }}</div>
-                                <div class="keydate-number {{ 'text-past' if state=='past' else 'text-future' }}">
-                                    {% if state == 'today' %}TODAY
-                                    {% else %}{{ diff }} Days
-                                    {% endif %}
+                            <div class="keydate-block">
+                                <div class="keydate-label">{{ node.item.title }}</div>
+                                <div class="keydate-days" style="{{ 'color:var(--neon-pink); -webkit-text-fill-color: initial;' if state == 'today' }}">
+                                    {% if state == 'today' %}NOW{% else %}{{ diff }}{% endif %}
                                 </div>
-                                <div style="font-size:0.8rem; opacity:0.6; margin-top:0.3rem">{{ node.item.date }}</div>
+                                <div class="keydate-label">
+                                    {% if state == 'past' %}DAYS AGO{% elif state == 'future' %}DAYS LEFT{% else %}HAPPENING{% endif %}
+                                </div>
                             </div>
                         {% endif %}
                     </div>
@@ -184,74 +218,133 @@
     </div>
 </main>
 
-<div class="docker">
-    <button class="dock-icon" onclick="openModal('entry')">
-        <svg viewBox="0 0 24 24"><path d="M14.06 9.02l.92.92L5.92 19H5v-.92l9.06-9.06M17.66 3c-.25 0-.51.1-.7.29l-1.83 1.83 3.75 3.75 1.83-1.83c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.2-.2-.45-.29-.71-.29zm-3.6 3.19L3 17.25V21h3.75L17.81 9.94l-3.75-3.75z"/></svg>
-        Mood
-    </button>
-    <button class="dock-icon" onclick="openModal('keydate')">
-        <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
-        Date
-    </button>
-    <button class="dock-icon" onclick="openModal('photo')">
-        <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-        Photo
-    </button>
+<div style="position: fixed; bottom: 3rem; left: 50%; transform: translateX(-50%); z-index: 200;">
+    <div style="
+        background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,0.1); border-radius: 100px;
+        padding: 0.6rem 1rem; display: flex; gap: 1.5rem; align-items: center;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    ">
+        <button onclick="openModal('entry')" class="dock-btn">+</button>
+        <div style="width:1px; height:16px; background:rgba(255,255,255,0.1)"></div>
+        <button onclick="triggerHearts()" class="dock-btn miss-you-btn" title="Miss You">❤</button>
+        <div style="width:1px; height:16px; background:rgba(255,255,255,0.1)"></div>
+        <button onclick="openModal('photo')" class="dock-btn">IMG</button>
+        <button onclick="openModal('keydate')" class="dock-btn">DAY</button>
+    </div>
 </div>
 
-<dialog id="input-modal">
-    <form method="dialog"><button style="float:right; background:none; border:none; color:white; font-size:1.5rem;">&times;</button></form>
-    <h3 id="modal-title" style="margin-top:0">New Record</h3>
-    <form id="modal-form" method="post" enctype="multipart/form-data">
-        <label style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:0.4rem;">Date & Time</label>
-        <input type="datetime-local" name="custom_date" id="date-input">
+<style>
+    .dock-btn { background: none; border: none; color: #888; font-family: 'JetBrains Mono'; font-size: 0.8rem; cursor: pointer; transition: 0.3s; }
+    .dock-btn:hover { color: white; }
+    .miss-you-btn { color: var(--neon-pink); opacity: 0.8; }
+    .miss-you-btn:hover { opacity: 1; transform: scale(1.2); text-shadow: 0 0 10px var(--neon-pink); }
+</style>
 
-        <div id="dynamic-fields"></div>
+<dialog id="input-modal" style="background:#111; color:white; border:1px solid #333; border-radius:8px; padding:2.5rem; width:90%; max-width:420px; box-shadow: 0 50px 100px black;">
+    <form method="dialog"><button style="float:right; background:none; border:none; color:rgba(255,255,255,0.3); font-size:1.5rem; cursor:pointer;">&times;</button></form>
+    <h3 id="modal-title" style="margin-top:0; margin-bottom:1.5rem; font-family:'Space Grotesk'; font-weight:400; letter-spacing:1px;">RECORD</h3>
 
-        <button type="submit" style="width:100%; padding:0.8rem; background:white; color:black; border:none; border-radius:10px; font-weight:700; cursor:pointer; margin-top:1rem;">Save</button>
+    <form id="modal-form" method="post" enctype="multipart/form-data" class="modal-form-content">
+        <div>
+            <label style="font-size:0.7rem; color:#666; display:block; margin-bottom:6px; font-family:'JetBrains Mono'">TIMESTAMP</label>
+            <input type="datetime-local" name="custom_date" id="date-input" class="modal-field">
+        </div>
+
+        <div id="dynamic-fields" style="display:flex; flex-direction:column; gap:1.2rem;"></div>
+
+        <button type="submit" class="modal-save-btn">SAVE RECORD</button>
     </form>
 </dialog>
 
 <script>
-    const modal = document.getElementById('input-modal');
+    /* ---- Heart Animation Fix: 防止加速 ---- */
+    const canvas = document.getElementById("hearts-canvas");
+    const ctx = canvas.getContext("2d");
+    let hearts = [];
+    let isAnimating = false; // [Fix] 添加状态锁
+
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.onresize = resize; resize();
+
+    function triggerHearts() {
+        for(let i=0; i<15; i++) {
+            hearts.push({
+                x: window.innerWidth/2 + (Math.random()*100-50),
+                y: window.innerHeight,
+                size: Math.random()*15+5,
+                speed: Math.random()*4+2,
+                opacity: 1,
+                wobble: Math.random()*10
+            });
+        }
+        // [Fix] 只有当没有在动画时，才启动 loop
+        if (!isAnimating) {
+            isAnimating = true;
+            animate();
+        }
+    }
+
+    function animate() {
+        if(hearts.length === 0) {
+            isAnimating = false; // [Fix] 动画结束，解锁
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            return;
+        }
+
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        hearts.forEach((h,i)=>{
+            h.y-=h.speed; h.x+=Math.sin(h.wobble)*1; h.wobble+=0.05; h.opacity-=0.01;
+            ctx.fillStyle=`rgba(255,0,60,${h.opacity})`; ctx.font=`${h.size}px serif`; ctx.fillText("❤",h.x,h.y);
+            if(h.opacity<=0) hearts.splice(i,1);
+        });
+
+        requestAnimationFrame(animate);
+    }
+
+    /* ---- Modal Logic ---- */
+    const dateInput = document.getElementById('date-input');
     const form = document.getElementById('modal-form');
     const fields = document.getElementById('dynamic-fields');
     const title = document.getElementById('modal-title');
-    const dateInput = document.getElementById('date-input');
+    const modal = document.getElementById('input-modal');
 
     function openModal(type) {
-        // Set default date to now (formatting for datetime-local: YYYY-MM-DDTHH:mm)
+        // 设置默认时间为当前本地时间 (YYYY-MM-DDTHH:MM)
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        dateInput.value = now.toISOString().slice(0, 16);
+        dateInput.value = now.toISOString().slice(0,16);
+
+        modal.showModal();
 
         if(type === 'entry') {
             form.action = "{{ url_for('add_entry') }}";
-            title.innerText = "Write Mood";
-            fields.innerHTML = `<textarea name="content" rows="4" placeholder="What's happening?" required></textarea>`;
+            title.innerText = "THOUGHTS";
+            fields.innerHTML = `<textarea name="content" rows="5" class="modal-field" placeholder="Write something..." style="resize:vertical;"></textarea>`;
         } else if(type === 'keydate') {
             form.action = "{{ url_for('add_keydate') }}";
-            title.innerText = "New Key Date";
-            // For KeyDate, we usually just need YYYY-MM-DD, but using the same input logic for simplicity
-            // or we can override the date input for this specific type to be date only.
+            title.innerText = "KEY DATE";
+            // [Fix] 移除 type="hidden" 的 date，直接使用上面的 datetime-local，但在 JS 提交时我们需要确保 keydate 使用同一字段名
+            // 后端 add_keydate 现在读取 'date' 字段，我们可以做一个隐藏域同步，或者让后端读取 custom_date
+            // 为了最小化后端改动，我们这里加一个隐藏域，在 submit 时同步值
             fields.innerHTML = `
-                <input type="text" name="title" placeholder="Title (e.g. First Kiss)" required>
-                <p style="font-size:0.7rem; color:grey;">Note: Key Dates use the date picker above.</p>
-                <input type="hidden" name="date" id="keydate-hidden">
+                <input name="title" placeholder="Event Title" class="modal-field" required>
+                <input type="hidden" name="date" id="kd-hidden">
             `;
-            // Special handling: KeyDate expects 'date' field YYYY-MM-DD
             form.onsubmit = () => {
-                if(type === 'keydate') document.getElementById('keydate-hidden').value = dateInput.value.split('T')[0];
-            };
+                if(type === 'keydate') {
+                    // [Fix] 传递完整的时间字符串，不再分割 split('T')[0]
+                    document.getElementById('kd-hidden').value = dateInput.value;
+                }
+            }
         } else if(type === 'photo') {
             form.action = "{{ url_for('add_photo') }}";
-            title.innerText = "Upload Photo";
+            title.innerText = "VISUAL";
             fields.innerHTML = `
-                <input type="file" name="photo" accept="image/*" required style="padding:1.5rem; border-style:dashed;">
-                <input type="text" name="caption" placeholder="Caption (Optional)">
+                <input type="file" name="photo" class="modal-field" style="padding:10px; height:auto;">
+                <input name="caption" placeholder="Caption" class="modal-field">
             `;
         }
-        modal.showModal();
     }
 </script>
 {% endblock %}

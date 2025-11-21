@@ -2,75 +2,103 @@
 {% block content %}
 <style>
     .dashboard {
-        max-width: 900px; margin: 0 auto; padding: 100px 1.5rem;
-        display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;
+        max-width: 1200px; margin: 0 auto; padding: 160px 2rem;
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2px; /* 极细的网格线效果 */
+        background: rgba(255,255,255,0.05); /* 用于形成网格缝隙的底色 */
+        border: 1px solid rgba(255,255,255,0.05);
     }
 
-    .count-card {
-        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 24px; padding: 2rem; text-align: center;
-        position: relative; overflow: hidden;
-        transition: transform 0.3s;
-    }
-    .count-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.05); }
-
-    .count-title { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 1rem; letter-spacing: 0.05em; text-transform: uppercase; }
-
-    .count-number {
-        font-family: 'Space Grotesk', sans-serif; font-size: 3.5rem; font-weight: 700; line-height: 1;
-        margin-bottom: 0.5rem;
+    .day-card {
+        background: #050505; /* 卡片全黑 */
+        padding: 3rem 2rem;
+        position: relative;
+        transition: background 0.4s;
+        aspect-ratio: 1/1; /* 正方形卡片，更具设计感 */
+        display: flex; flex-direction: column; justify-content: space-between;
     }
 
-    .count-sub { font-size: 0.9rem; color: var(--text-muted); }
+    .day-card:hover { background: #0a0a0a; }
 
-    /* Styles for Past vs Future */
-    .style-past .count-number {
-        background: linear-gradient(135deg, #fff, var(--accent-past));
+    .meta-top {
+        display: flex; justify-content: space-between; align-items: flex-start;
+    }
+
+    /* 标题 */
+    .day-title {
+        font-family: 'Inter', sans-serif; font-size: 1rem; font-weight: 400; color: #888;
+    }
+
+    /* 状态圆点 (代替丑陋的横条) */
+    .status-dot {
+        width: 8px; height: 8px; border-radius: 50%; background: #333;
+    }
+    .status-past { background: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+    .status-future { background: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
+    .status-today { background: var(--neon-pink); animation: pulse 2s infinite; }
+
+    /* 数字区域 */
+    .count-area { text-align: right; }
+    .count-num {
+        font-family: 'Space Grotesk', sans-serif; font-size: 5rem; font-weight: 700;
+        line-height: 0.9; letter-spacing: -3px; color: white;
+        /* 细微的渐变，增加质感 */
+        background: linear-gradient(180deg, #fff 0%, #aaa 100%);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
-    .style-past::before {
-        content: ''; position: absolute; top:0; left:0; width:100%; height:4px; background: var(--accent-past);
+    .count-label {
+        font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #444;
+        text-transform: uppercase; margin-top: 1rem; letter-spacing: 2px;
     }
 
-    .style-future .count-number {
-        background: linear-gradient(135deg, #fff, var(--accent-future));
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .style-future::before {
-        content: ''; position: absolute; top:0; left:0; width:100%; height:4px; background: var(--accent-future);
+    /* 日期水印 */
+    .date-stamp {
+        position: absolute; bottom: 2rem; left: 2rem;
+        font-family: 'JetBrains Mono'; font-size: 0.7rem; color: #333;
+        transform: rotate(-90deg); transform-origin: left bottom;
     }
 
-    .style-today .count-number { color: white; }
+    /* 删除按钮 */
+    .delete-wrap { position: absolute; top: 1rem; right: 1rem; opacity: 0; transition: 0.2s; }
+    .day-card:hover .delete-wrap { opacity: 1; }
+    .btn-x { background: none; border: none; color: #333; cursor: pointer; font-size: 1.2rem; }
+    .btn-x:hover { color: #a00; }
 
-    /* Empty State */
-    .empty-state { grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 4rem; }
+    @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
 </style>
 
 <div class="dashboard">
     {% for item in dates %}
         {% set diff, state = get_days_diff(item.date) %}
-
-        <div class="count-card style-{{ state }}">
-            <div class="count-title">{{ item.title }}</div>
-
-            <div class="count-number">
-                {% if state == 'today' %}NOW{% else %}{{ diff }}{% endif %}
+        <div class="day-card">
+            <div class="delete-wrap">
+                <form action="/delete/keydate/{{ item.id }}" method="post" onsubmit="return confirm('Delete?')">
+                    <button class="btn-x">×</button>
+                </form>
             </div>
 
-            <div class="count-sub">
-                {% if state == 'past' %}Days Since{% elif state == 'future' %}Days Left{% else %}Happening Today!{% endif %}
+            <div class="meta-top">
+                <div class="day-title">{{ item.title }}</div>
+                <div class="status-dot status-{{ state }}"></div>
             </div>
-            <div style="font-size:0.8rem; margin-top:1.5rem; opacity:0.5; font-family:monospace;">{{ item.date }}</div>
 
-            <form action="/delete/keydate/{{ item.id }}" method="post" onsubmit="return confirm('Remove this date?')" style="position:absolute; bottom:1rem; right:1rem;">
-                <button style="background:none; border:none; color:rgba(255,255,255,0.2); cursor:pointer; font-size:1.2rem;">&times;</button>
-            </form>
-        </div>
-    {% else %}
-        <div class="empty-state">
-            <h2>No Dates Yet</h2>
-            <p>Use the + button on the timeline to add anniversaries or countdowns.</p>
+            <div class="date-stamp">{{ item.date }}</div>
+
+            <div class="count-area">
+                <div class="count-num">
+                    {% if state == 'today' %}0{% else %}{{ diff }}{% endif %}
+                </div>
+                <div class="count-label">
+                    {% if state == 'past' %}Days Since{% elif state == 'future' %}Days Until{% else %}Happening{% endif %}
+                </div>
+            </div>
         </div>
     {% endfor %}
+
+    {% if not dates %}
+        <div style="grid-column: 1/-1; padding: 4rem; text-align: center; color: #444; font-family: 'Space Grotesk';">
+            NOTHING RECORDED YET.
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

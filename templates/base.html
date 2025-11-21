@@ -5,54 +5,90 @@
     <title>Love Journal</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #050505;
-            --glass: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --accent-future: #00f2ff; /* 蓝色/青色 - 未来 */
-            --accent-past: #ff0055;   /* 粉色/红色 - 过去 */
+            --bg: #030303; /* 极致深黑 */
+            --surface: #0f0f0f;
             --text-main: #ffffff;
-            --text-muted: rgba(255, 255, 255, 0.5);
+            --text-muted: #666666;
+            --accent-glow: rgba(255, 255, 255, 0.15);
+            --line-color: #1a1a1a;
+
+            /* 现代高对比霓虹色，极细微使用 */
+            --neon-blue: #2b00ff;
+            --neon-pink: #ff003c;
         }
+
         body {
-            background: var(--bg);
+            background-color: var(--bg);
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
             margin: 0;
             overflow-x: hidden;
-        }
-        /* 全局动态背景 */
-        .ambient-bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: -1;
-            background:
-                radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.06), transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(255, 0, 85, 0.06), transparent 40%);
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* 顶部导航 */
+        /* ---- 影院级 SVG 噪点 (Cinematic Grain) ---- */
+        /* 这种方式生成的噪点是矢量计算的，永远不会有像素块 */
+        .noise-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 9999; opacity: 0.06;
+            filter: url(#noiseFilter);
+        }
+
+        /* 顶部导航 - 极简主义 */
         header {
-            position: fixed; top: 0; width: 100%; height: 60px; z-index: 100;
-            display: flex; justify-content: center; align-items: center; gap: 2rem;
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--glass-border);
-            background: rgba(5,5,5,0.6);
+            position: fixed; top: 0; width: 100%; height: 80px; z-index: 100;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 3rem; box-sizing: border-box;
+            mix-blend-mode: difference; /* 高级感混合模式：让文字在白背景上变黑，黑背景上变白 */
         }
+
         .nav-link {
-            color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 0.9rem;
-            transition: 0.3s;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px;
+            color: #888; text-decoration: none; margin-left: 2rem;
+            transition: color 0.3s ease;
         }
-        .nav-link.active { color: white; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
-        .nav-link:hover { color: white; }
+        .nav-link:hover, .nav-link.active { color: #fff; }
+
+        .brand {
+            font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+            font-size: 1.2rem; letter-spacing: -1px; color: white;
+            text-decoration: none;
+        }
+
+        /* 小窝标识 - 极简几何化 */
+        .nest-badge {
+            display: flex; align-items: center; gap: 10px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+            color: white; opacity: 0.6; transition: opacity 0.3s;
+        }
+        .nest-badge:hover { opacity: 1; }
+        .nest-dot { width: 6px; height: 6px; background: var(--neon-pink); border-radius: 50%; box-shadow: 0 0 10px var(--neon-pink);}
+
+        @media (max-width: 768px) { header { padding: 0 1.5rem; } }
     </style>
 </head>
 <body>
-    <div class="ambient-bg"></div>
+    <svg style="display: none;">
+        <filter id="noiseFilter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/>
+        </filter>
+    </svg>
+    <div class="noise-overlay"></div>
+
     <header>
-        <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Timeline</a>
-        <a href="{{ url_for('anniversaries') }}" class="nav-link {% if request.endpoint == 'anniversaries' %}active{% endif %}">Anniversaries</a>
+        <a href="{{ url_for('index') }}" class="brand">JOURNAL.</a>
+        <div style="display:flex; align-items:center;">
+            <a href="{{ url_for('anniversaries') }}" class="nav-link">Timeline</a> <div class="nest-badge" style="margin-left: 2rem;">
+                <div class="nest-dot"></div>
+                <span>NEST</span>
+            </div>
+        </div>
     </header>
+
     {% block content %}{% endblock %}
 </body>
 </html>
