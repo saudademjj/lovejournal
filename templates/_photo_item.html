@@ -1,0 +1,9 @@
+<figure>
+  <a href="{{ url_for('uploaded_file', filename=photo.filename) }}" target="_blank">
+    <img src="{{ url_for('uploaded_file', filename=photo.filename) }}"
+         alt="{{ photo.caption or 'photo' }}">
+  </a>
+  {% if photo.caption %}
+    <figcaption class="muted">{{ photo.caption }}</figcaption>
+  {% endif %}
+</figure>

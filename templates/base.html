@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <title>我们的小日记</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Pico.css (简单好看的默认样式) -->
+    <link rel="stylesheet"
+          href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <style>
+      body {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 1rem;
+      }
+      header {
+        margin-bottom: 1.5rem;
+      }
+      .timeline-item {
+        margin-bottom: 1rem;
+      }
+      .photo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.75rem;
+      }
+      .photo-grid img {
+        width: 100%;
+        border-radius: 8px;
+        object-fit: cover;
+      }
+      .muted {
+        color: var(--muted-color);
+        font-size: 0.9em;
+      }
+      .date-badge {
+        font-size: 0.85em;
+        padding: 0.2em 0.6em;
+        border-radius: 999px;
+        background: var(--muted-border-color);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>我们的小日记</h1>
+      <p class="muted">只在 Tailscale 小世界里开放的二人空间 💌</p>
+    </header>
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

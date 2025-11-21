@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section>
+  <h2>最近心情</h2>
+  <form hx-post="{{ url_for('add_entry') }}"
+        hx-target="#timeline"
+        hx-swap="afterbegin">
+    <label>
+      今天想记录点什么？
+      <textarea name="content" rows="3" required></textarea>
+    </label>
+    <button type="submit">写入时间线</button>
+  </form>
+
+  <div id="timeline" style="margin-top: 1.5rem;">
+    {% for entry in entries %}
+      {% include "_entry_item.html" %}
+    {% else %}
+      <p class="muted">还没有记录，写下第一条吧 ❤️</p>
+    {% endfor %}
+  </div>
+</section>
+
+<hr>
+
+<section>
+  <h2>我们的日子</h2>
+  <form hx-post="{{ url_for('add_keydate') }}"
+        hx-target="#keydate-list"
+        hx-swap="beforeend">
+    <div class="grid">
+      <label>
+        标题
+        <input name="title" required placeholder="在一起纪念日 / 某个约定...">
+      </label>
+      <label>
+        日期
+        <input type="date" name="date" required>
+      </label>
+    </div>
+    <button type="submit">添加日期</button>
+  </form>
+
+  <ul id="keydate-list">
+    {% for d in key_dates %}
+      {% include "_date_item.html" %}
+    {% else %}
+      <li class="muted">先加一个重要的日子吧 ✨</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<hr>
+
+<section>
+  <h2>小照片</h2>
+  <form hx-post="{{ url_for('upload_photo') }}"
+        hx-target="#photo-grid"
+        hx-swap="afterbegin"
+        enctype="multipart/form-data">
+    <div class="grid">
+      <label>
+        选择一张小照片 (≤4MB)
+        <input type="file" name="photo" accept="image/*" required>
+      </label>
+      <label>
+        备注（可选）
+        <input type="text" name="caption" placeholder="一起吃的那次火锅...">
+      </label>
+    </div>
+    <button type="submit">上传</button>
+  </form>
+
+  <div id="photo-grid" class="photo-grid" style="margin-top: 1rem;">
+    {% for photo in photos %}
+      {% include "_photo_item.html" %}
+    {% else %}
+      <p class="muted">还没有照片，可以先上传一张你们最喜欢的合照 📷</p>
+    {% endfor %}
+  </div>
+</section>
+
+{% endblock %}
