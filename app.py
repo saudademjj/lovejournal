@@ -1,11 +1,11 @@
 from flask import (
     Flask, render_template, request, redirect,
-    url_for, send_from_directory, abort
+    url_for, send_from_directory
 )
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date
-from werkzeug.utils import secure_filename
 import os
+from werkzeug.utils import secure_filename
 
 db = SQLAlchemy()
 
@@ -13,27 +13,25 @@ db = SQLAlchemy()
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
 
-    # 生产环境建议改成你自己随机生成的秘:
-    # python -c "import secrets; print(secrets.token_hex(32))"
     app.config.from_mapping(
-        SECRET_KEY="change-this-to-a-random-secret",
+        SECRET_KEY="your-secret-key",
         SQLALCHEMY_DATABASE_URI="sqlite:///" + os.path.join(app.instance_path, "lovejournal.sqlite"),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         UPLOAD_FOLDER=os.path.join(app.instance_path, "uploads"),
-        MAX_CONTENT_LENGTH=4 * 1024 * 1024,  # 4 MB 小照片
+        MAX_CONTENT_LENGTH=16 * 1024 * 1024,
         ALLOWED_EXTENSIONS={"png", "jpg", "jpeg", "gif", "webp"},
     )
 
-    # 确保 instance / uploads 目录存在
     os.makedirs(app.instance_path, exist_ok=True)
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
     db.init_app(app)
 
-    # ---- 数据模型 ----
+    # ---- Models ----
     class Entry(db.Model):
         id = db.Column(db.Integer, primary_key=True)
-        created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+        # 允许用户自定义时间
+        created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
         content = db.Column(db.Text, nullable=False)
 
     class KeyDate(db.Model):
@@ -44,144 +42,141 @@ def create_app():
     class Photo(db.Model):
         id = db.Column(db.Integer, primary_key=True)
         filename = db.Column(db.String(255), nullable=False)
-        uploaded_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+        # 允许用户自定义时间
+        created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
         caption = db.Column(db.String(255))
 
     with app.app_context():
         db.create_all()
 
-    # ---- 小工具 ----
-    def allowed_file(filename: str) -> bool:
-        return (
-            "." in filename
-            and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
-        )
+    # ---- Helpers ----
+    def allowed_file(filename):
+        return "." in filename and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
 
     @app.context_processor
     def inject_helpers():
-        def days_diff(d: date) -> int:
-            """正数: 还有多少天；负数: 已经过了多少天"""
+        def get_days_diff(d):
+            """计算天数差，返回 (数值, 'past'|'future'|'today')"""
             today = date.today()
-            return (d - today).days
+            if isinstance(d, datetime):
+                d = d.date()
+            diff = (d - today).days
+            if diff < 0: return (abs(diff), 'past')
+            if diff > 0: return (diff, 'future')
+            return (0, 'today')
 
-        return dict(days_diff=days_diff)
+        return dict(get_days_diff=get_days_diff)
 
-    # ---- 路由 ----
+    # ---- Routes ----
 
-    @app.route("/", methods=["GET"])
+    @app.route("/")
     def index():
-        today = date.today()
-
         timeline = []
 
-        for entry in Entry.query.all():
-            timeline.append({
-                "type": "entry",
-                "timestamp": entry.created_at,
-                "item": entry,
-            })
+        # 聚合数据
+        for e in Entry.query.all():
+            timeline.append({"type": "entry", "timestamp": e.created_at, "item": e})
+        for k in KeyDate.query.all():
+            ts = datetime.combine(k.date, datetime.min.time())
+            timeline.append({"type": "keydate", "timestamp": ts, "item": k})
+        for p in Photo.query.all():
+            timeline.append({"type": "photo", "timestamp": p.created_at, "item": p})
 
-        for kd in KeyDate.query.all():
-            timeline.append({
-                "type": "keydate",
-                "timestamp": datetime.combine(kd.date, datetime.min.time()),
-                "item": kd,
-            })
+        # 排序
+        timeline.sort(key=lambda x: x["timestamp"], reverse=True)
 
-        for photo in Photo.query.all():
-            timeline.append({
-                "type": "photo",
-                "timestamp": photo.uploaded_at,
-                "item": photo,
-            })
+        # 提取年份列表供侧边栏导航使用
+        # 格式: { 2025: [12, 11, ...], 2024: [...] } 简化版只取年份
+        years = sorted(list(set([t["timestamp"].year for t in timeline])), reverse=True)
 
-        timeline.sort(key=lambda node: node["timestamp"], reverse=True)
+        return render_template("index.html", timeline=timeline, years=years)
 
-        return render_template(
-            "index.html",
-            timeline=timeline,
-            today=today,
-        )
+    @app.route("/anniversaries")
+    def anniversaries():
+        # 获取所有纪念日并按日期排序
+        dates = KeyDate.query.order_by(KeyDate.date).all()
+        return render_template("anniversaries.html", dates=dates)
 
-    @app.post("/entries")
-    def add_entry():
-        content = (request.form.get("content") or "").strip()
-        if not content:
-            return ("", 204)
+    # ---- Create Actions (Unified Date Logic) ----
 
-        entry = Entry(content=content)
-        db.session.add(entry)
-        db.session.commit()
-
-        # HTMX 请求：只返回单条 HTML 片段
-        if request.headers.get("HX-Request") == "true":
-            return render_template("_entry_item.html", entry=entry)
-
-        return redirect(url_for("index"))
-
-    @app.post("/keydates")
-    def add_keydate():
-        title = (request.form.get("title") or "").strip()
-        date_str = (request.form.get("date") or "").strip()
-
-        if not title or not date_str:
-            return ("", 204)
-
+    def parse_datetime(date_str):
+        """解析前端传入的 datetime-local 字符串，如果空则返回现在"""
+        if not date_str:
+            return datetime.now()
         try:
-            d = datetime.strptime(date_str, "%Y-%m-%d").date()
+            return datetime.strptime(date_str, "%Y-%m-%dT%H:%M")
         except ValueError:
-            return ("Invalid date", 400)
+            return datetime.now()
 
-        kd = KeyDate(title=title, date=d)
-        db.session.add(kd)
-        db.session.commit()
+    @app.post("/add/entry")
+    def add_entry():
+        content = request.form.get("content", "").strip()
+        custom_date = request.form.get("custom_date")  # 获取自定义日期
 
-        if request.headers.get("HX-Request") == "true":
-            return render_template("_date_item.html", d=kd, today=date.today())
-
+        if content:
+            dt = parse_datetime(custom_date)
+            db.session.add(Entry(content=content, created_at=dt))
+            db.session.commit()
         return redirect(url_for("index"))
 
-    @app.post("/photos")
-    def upload_photo():
+    @app.post("/add/keydate")
+    def add_keydate():
+        title = request.form.get("title", "").strip()
+        date_str = request.form.get("date", "").strip()
+
+        if title and date_str:
+            try:
+                d = datetime.strptime(date_str, "%Y-%m-%d").date()
+                db.session.add(KeyDate(title=title, date=d))
+                db.session.commit()
+            except ValueError:
+                pass
+
+        # 如果来源是纪念日页面，跳回纪念日页，否则跳回主页
+        if "anniversaries" in request.referrer:
+            return redirect(url_for("anniversaries"))
+        return redirect(url_for("index"))
+
+    @app.post("/add/photo")
+    def add_photo():
         file = request.files.get("photo")
-        caption = (request.form.get("caption") or "").strip()
+        caption = request.form.get("caption", "").strip()
+        custom_date = request.form.get("custom_date")  # 获取自定义日期
 
-        if not file or file.filename == "":
-            return ("", 204)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            base, ext = os.path.splitext(filename)
+            count = 1
+            save_name = filename
+            while os.path.exists(os.path.join(app.config["UPLOAD_FOLDER"], save_name)):
+                save_name = f"{base}_{count}{ext}"
+                count += 1
 
-        if not allowed_file(file.filename):
-            return ("File type not allowed", 400)
+            file.save(os.path.join(app.config["UPLOAD_FOLDER"], save_name))
 
-        filename = secure_filename(file.filename)
-        base, ext = os.path.splitext(filename)
-        upload_folder = app.config["UPLOAD_FOLDER"]
-
-        # 避免重名覆盖
-        i = 1
-        save_name = filename
-        while os.path.exists(os.path.join(upload_folder, save_name)):
-            save_name = f"{base}_{i}{ext}"
-            i += 1
-
-        file.save(os.path.join(upload_folder, save_name))
-
-        photo = Photo(filename=save_name, caption=caption or None)
-        db.session.add(photo)
-        db.session.commit()
-
-        if request.headers.get("HX-Request") == "true":
-            return render_template("_photo_item.html", photo=photo)
-
+            dt = parse_datetime(custom_date)
+            db.session.add(Photo(filename=save_name, caption=caption, created_at=dt))
+            db.session.commit()
         return redirect(url_for("index"))
 
-    @app.get("/uploads/<path:filename>")
+    # ---- Update/Delete (Omitted for brevity, same as before but map fields) ----
+    # 简化的删除路由
+    @app.post("/delete/<type>/<int:id>")
+    def delete_item(type, id):
+        model = {"entry": Entry, "keydate": KeyDate, "photo": Photo}.get(type)
+        if model:
+            item = db.get_or_404(model, id)
+            db.session.delete(item)
+            db.session.commit()
+        return redirect(request.referrer or url_for("index"))
+
+    @app.route("/uploads/<path:filename>")
     def uploaded_file(filename):
-        # 简单保护
-        if ".." in filename or filename.startswith("/"):
-            abort(404)
         return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
     return app
 
 
-app = create_app()
+if __name__ == "__main__":
+    app = create_app()
+    app.run(debug=True, host="0.0.0.0")

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .dashboard {
+        max-width: 900px; margin: 0 auto; padding: 100px 1.5rem;
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;
+    }
+
+    .count-card {
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 24px; padding: 2rem; text-align: center;
+        position: relative; overflow: hidden;
+        transition: transform 0.3s;
+    }
+    .count-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.05); }
+
+    .count-title { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 1rem; letter-spacing: 0.05em; text-transform: uppercase; }
+
+    .count-number {
+        font-family: 'Space Grotesk', sans-serif; font-size: 3.5rem; font-weight: 700; line-height: 1;
+        margin-bottom: 0.5rem;
+    }
+
+    .count-sub { font-size: 0.9rem; color: var(--text-muted); }
+
+    /* Styles for Past vs Future */
+    .style-past .count-number {
+        background: linear-gradient(135deg, #fff, var(--accent-past));
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .style-past::before {
+        content: ''; position: absolute; top:0; left:0; width:100%; height:4px; background: var(--accent-past);
+    }
+
+    .style-future .count-number {
+        background: linear-gradient(135deg, #fff, var(--accent-future));
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .style-future::before {
+        content: ''; position: absolute; top:0; left:0; width:100%; height:4px; background: var(--accent-future);
+    }
+
+    .style-today .count-number { color: white; }
+
+    /* Empty State */
+    .empty-state { grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 4rem; }
+</style>
+
+<div class="dashboard">
+    {% for item in dates %}
+        {% set diff, state = get_days_diff(item.date) %}
+
+        <div class="count-card style-{{ state }}">
+            <div class="count-title">{{ item.title }}</div>
+
+            <div class="count-number">
+                {% if state == 'today' %}NOW{% else %}{{ diff }}{% endif %}
+            </div>
+
+            <div class="count-sub">
+                {% if state == 'past' %}Days Since{% elif state == 'future' %}Days Left{% else %}Happening Today!{% endif %}
+            </div>
+            <div style="font-size:0.8rem; margin-top:1.5rem; opacity:0.5; font-family:monospace;">{{ item.date }}</div>
+
+            <form action="/delete/keydate/{{ item.id }}" method="post" onsubmit="return confirm('Remove this date?')" style="position:absolute; bottom:1rem; right:1rem;">
+                <button style="background:none; border:none; color:rgba(255,255,255,0.2); cursor:pointer; font-size:1.2rem;">&times;</button>
+            </form>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h2>No Dates Yet</h2>
+            <p>Use the + button on the timeline to add anniversaries or countdowns.</p>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
