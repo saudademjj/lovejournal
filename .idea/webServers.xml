@@ -2,7 +2,7 @@
 <project version="4">
   <component name="WebServers">
     <option name="servers">
-      <webServer id="e9519fc7-e61a-4da4-b96d-9cd2fc6e8616" name="xpv">
+      <webServer id="d51dac18-4ced-4130-9ace-5d40bb188a99" name="vps">
         <fileTransfer accessType="SFTP" host="100.87.125.127" port="22" sshConfigId="1459f548-c67c-4679-894f-8953e5770926" sshConfig="root@100.87.125.127:22 password">
           <advancedOptions>
             <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />

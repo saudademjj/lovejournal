@@ -2,10 +2,10 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8">
-    <title>我们的小日记</title>
+    <title>我们的日记</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- Pico.css (简单好看的默认样式) -->
+    <!-- Pico.css as reset/base -->
     <link rel="stylesheet"
           href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
 
@@ -13,43 +13,35 @@
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 
     <style>
+      :root {
+        color-scheme: dark;
+      }
       body {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 1rem;
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Inter", "SF Pro Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: #0b0c11;
+        color: #f2f4ff;
       }
       header {
-        margin-bottom: 1.5rem;
-      }
-      .timeline-item {
-        margin-bottom: 1rem;
-      }
-      .photo-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 0.75rem;
-      }
-      .photo-grid img {
         width: 100%;
-        border-radius: 8px;
-        object-fit: cover;
+        padding: 2rem 1.5rem 1rem;
+        box-sizing: border-box;
       }
-      .muted {
-        color: var(--muted-color);
-        font-size: 0.9em;
+      main {
+        width: 100%;
+        box-sizing: border-box;
       }
-      .date-badge {
-        font-size: 0.85em;
-        padding: 0.2em 0.6em;
-        border-radius: 999px;
-        background: var(--muted-border-color);
+      a {
+        color: inherit;
+        text-decoration: none;
       }
     </style>
   </head>
   <body>
     <header>
-      <h1>我们的小日记</h1>
-      <p class="muted">只在 Tailscale 小世界里开放的二人空间 💌</p>
+      <h1 style="margin: 0; font-weight: 800; letter-spacing: -0.02em;">我日记</h1>
+      <p class="muted" style="margin-top: 0.4rem; color: rgba(255,255,255,0.7);">只在 Tailscale 小世界里开放的二人空间 💌</p>
     </header>
 
     <main>
