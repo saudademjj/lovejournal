@@ -70,15 +70,36 @@ def create_app():
 
     @app.route("/", methods=["GET"])
     def index():
-        entries = Entry.query.order_by(Entry.created_at.desc()).all()
-        key_dates = KeyDate.query.order_by(KeyDate.date.asc()).all()
-        photos = Photo.query.order_by(Photo.uploaded_at.desc()).limit(12).all()
         today = date.today()
+
+        timeline = []
+
+        for entry in Entry.query.all():
+            timeline.append({
+                "type": "entry",
+                "timestamp": entry.created_at,
+                "item": entry,
+            })
+
+        for kd in KeyDate.query.all():
+            timeline.append({
+                "type": "keydate",
+                "timestamp": datetime.combine(kd.date, datetime.min.time()),
+                "item": kd,
+            })
+
+        for photo in Photo.query.all():
+            timeline.append({
+                "type": "photo",
+                "timestamp": photo.uploaded_at,
+                "item": photo,
+            })
+
+        timeline.sort(key=lambda node: node["timestamp"], reverse=True)
+
         return render_template(
             "index.html",
-            entries=entries,
-            key_dates=key_dates,
-            photos=photos,
+            timeline=timeline,
             today=today,
         )
 
