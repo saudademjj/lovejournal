@@ -1,16 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="vps" exclude=".git;.idea;venv;instance;_pycache_;*.pyc " remoteFilesAllowedToDisappearOnAutoupload="false" autoUploadExternalChanges="true">
+  <component name="PublishConfigData" autoUpload="Always" serverName="root@100.87.125.127:22 password" exclude=".git;.idea;venv;instance;_pycache_;*.pyc " remoteFilesAllowedToDisappearOnAutoupload="false" autoUploadExternalChanges="true">
     <serverData>
-      <paths name="vps">
+      <paths name="root@100.87.125.127:22 password">
         <serverdata>
           <mappings>
             <mapping deploy="/opt/lovejournal" local="$PROJECT_DIR$" web="/" />
           </mappings>
-          <excludedPaths>
-            <excludedPath local="true" path="venv .idea __pycache__ *.pyc " />
-            <excludedPath path="venv .idea __pycache__ *.pyc " />
-          </excludedPaths>
         </serverdata>
       </paths>
     </serverData>

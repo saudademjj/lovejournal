@@ -1,9 +1,8 @@
 import os
+import queue
 import re
 import threading
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-
 import requests
 
 from flask import (
@@ -210,9 +209,9 @@ def create_app():
             return None
 
     geocode_cache = {}
-    geocode_inflight = set()
     geocode_lock = threading.Lock()
-    geocode_executor = ThreadPoolExecutor(max_workers=4)
+    geocode_queue: queue.Queue[str] = queue.Queue()
+    geocode_pending = set()
 
     def geocode_location(location_text):
         """使用高德 Web API 将地点文本转为坐标，缓存结果减少重复请求"""
@@ -246,26 +245,65 @@ def create_app():
             geocode_cache[location_text] = result
         return result
 
-    def get_cached_geocode(location_text):
-        with geocode_lock:
-            return geocode_cache.get(location_text)
-
-    def schedule_geocode(location_text):
-        if not location_text:
-            return
-        with geocode_lock:
-            if location_text in geocode_cache or location_text in geocode_inflight:
-                return
-            geocode_inflight.add(location_text)
-
-        def task():
+    def geocode_worker():
+        while True:
+            location_text = geocode_queue.get()
             try:
+                if not location_text:
+                    continue
+                with geocode_lock:
+                    if location_text in geocode_cache:
+                        continue
                 geocode_location(location_text)
             finally:
                 with geocode_lock:
-                    geocode_inflight.discard(location_text)
+                    geocode_pending.discard(location_text)
+                geocode_queue.task_done()
 
-        geocode_executor.submit(task)
+    threading.Thread(target=geocode_worker, daemon=True).start()
+
+    def resolve_location(location_text):
+        """
+        统一把地点文本转换为 (lat, lng)：
+        1. 先尝试从文本中直接解析坐标
+        2. 再尝试从缓存里取
+        3. 最后同步调用高德地理编码接口
+        """
+        if not location_text:
+            return None
+
+        coords = parse_coords_from_location(location_text)
+        if coords:
+            return coords
+
+        with geocode_lock:
+            if location_text in geocode_cache:
+                return geocode_cache[location_text]
+
+        # 缓存里也没有，直接请求一次
+        return geocode_location(location_text)
+
+    def resolve_location_async(location_text):
+        """
+        在请求线程里尽量不阻塞：
+        1. 尝试解析坐标或读取缓存
+        2. 未命中时把地址放到后台队列，等待异步 geocode_worker 处理
+        """
+        if not location_text:
+            return None
+
+        coords = parse_coords_from_location(location_text)
+        if coords:
+            return coords
+
+        with geocode_lock:
+            if location_text in geocode_cache:
+                return geocode_cache[location_text]
+            if location_text not in geocode_pending:
+                geocode_pending.add(location_text)
+                geocode_queue.put(location_text)
+
+        return None
 
     def build_on_this_day():
         """
@@ -356,14 +394,14 @@ def create_app():
         markers = []
 
         def append_marker(item, kind, label, timestamp, snippet, image=None):
-            coords = parse_coords_from_location(getattr(item, "location", None))
+            # 用同步解析，确保立即拿到坐标；否则会被跳过导致地图空白
+            coords = resolve_location(getattr(item, "location", None))
             if not coords:
-                coords = get_cached_geocode(label)
-                if not coords:
-                    schedule_geocode(label)
-            lat = lng = None
-            if coords:
-                lat, lng = coords
+                coords = resolve_location(label)
+            if not coords:
+                return
+
+            lat, lng = coords
 
             markers.append(
                 {
@@ -415,13 +453,33 @@ def create_app():
         把前端写入的地点文本 + coords 拼在一起：
         - coords 为 "lat,lng"
         - 存库格式："lat,lng 北京 三里屯"
+        - 若用户没点 AUTO，也尝试后端同步地理编码，避免地图为空
         """
         location_text = (location_text or "").strip()
         coords_text = (coords_text or "").strip()
-        if coords_text:
+
+        def parse_coords_text(text):
+            nums = coord_number_re.findall(text.replace("，", ","))
+            if len(nums) < 2:
+                return None
+            try:
+                return (float(nums[0]), float(nums[1]))
+            except ValueError:
+                return None
+
+        coords_pair = parse_coords_text(coords_text) if coords_text else None
+
+        # 没有前端返回的坐标，则用后端同步解析一次
+        if not coords_pair and location_text:
+            coords_pair = resolve_location(location_text)
+
+        if coords_pair:
+            lat, lng = coords_pair
+            coords_str = f"{lat:.6f},{lng:.6f}"
             if location_text:
-                return f"{coords_text} {location_text}"
-            return coords_text
+                return f"{coords_str} {location_text}"
+            return coords_str
+
         return location_text or None
 
     @app.post("/add/entry")
@@ -608,7 +666,7 @@ def create_app():
 
     return app
 
+app = create_app()
 
 if __name__ == "__main__":
-    app = create_app()
     app.run(debug=True, host="0.0.0.0")
