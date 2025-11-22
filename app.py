@@ -198,7 +198,7 @@ def create_app():
             lat = float(nums[0])
             lng = float(nums[1])
             # 如果首个数值不在正常纬度范围，而第二个数值在，则认为用户写反了
-            if (abs(lat) > 90 and abs(lng) <= 90) or (abs(lat) > abs(lng) and abs(lng) <= 90):
+            if abs(lat) > 90 and abs(lat) <= 180 and abs(lng) <= 90:
                 lat, lng = lng, lat
             return lat, lng
         except ValueError:
