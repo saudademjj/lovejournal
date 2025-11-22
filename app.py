@@ -90,6 +90,24 @@ def create_app():
 
         return dict(get_days_diff=get_days_diff)
 
+    # 新增：清洗地理位置显示，去除前面的坐标数字
+    @app.template_filter('clean_geo')
+    def clean_geo_filter(value):
+        if not value:
+            return ""
+        # 匹配开头格式如 "31.23,121.47 " 的坐标部分
+        # 必须是数字+逗号+数字+空格
+        pattern = r'^[\d\.\-]+,[\d\.\-]+\s+'
+        cleaned = re.sub(pattern, '', value)
+
+        # 如果清洗后还有内容（说明有地名），就只返回地名
+        if cleaned.strip():
+            return cleaned.strip()
+
+        # 如果清洗后没内容了（说明只有坐标），直接返回空，或者你想要简短坐标也可以
+        # 这里为了美观，如果只有纯坐标，就不显示了，或者你可以改成 return "📍"
+        return ""
+
     tag_pattern = re.compile(r"#([\w\u4e00-\u9fa5]+)")
 
     def extract_tags(*texts):
@@ -665,6 +683,7 @@ def create_app():
         return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
     return app
+
 
 app = create_app()
 

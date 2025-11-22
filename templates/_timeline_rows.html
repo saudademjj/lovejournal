@@ -65,7 +65,7 @@
                     </div>
                     {% if node.item.location %}
                         <div class="entry-location">
-                            {{ node.item.location }}
+                            {{ node.item.location | clean_geo }}
                         </div>
                     {% endif %}
 
@@ -84,7 +84,7 @@
                     {% endif %}
                     {% if node.item.location %}
                         <div class="entry-location">
-                            {{ node.item.location }}
+                            {{ node.item.location | clean_geo }}
                         </div>
                     {% endif %}
 
@@ -115,7 +115,7 @@
                         </div>
                         {% if node.item.location %}
                             <div class="entry-location">
-                                {{ node.item.location }}
+                                {{ node.item.location | clean_geo }}
                             </div>
                         {% endif %}
                     </div>

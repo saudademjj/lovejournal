@@ -111,6 +111,9 @@
     const heatData = [];
     let heatmap = null;
 
+    // 用于记录坐标点，避免完全重合
+    const seenPositions = new Set();
+
     map.plugin(['AMap.HeatMap'], function () {
         heatmap = new AMap.HeatMap(map, {
             radius: 25,
@@ -124,8 +127,22 @@
 
     function buildMarker(m) {
         const color = colorForKind(m.kind);
-        // 高德地图坐标顺序是 [Lng, Lat] (经度, 纬度)
-        const pos = new AMap.LngLat(m.lng, m.lat);
+
+        // --- 坐标扰动逻辑 (Jitter) ---
+        // 检查该坐标是否已经存在，如果存在则添加微小的随机偏移
+        // 0.0002 大约是 20 米左右，足够在视觉上分开
+        let lat = m.lat;
+        let lng = m.lng;
+        // 保留4位小数作为key判定重合
+        const posKey = lat.toFixed(4) + ',' + lng.toFixed(4);
+
+        if (seenPositions.has(posKey)) {
+            lat += (Math.random() - 0.5) * 0.001;
+            lng += (Math.random() - 0.5) * 0.001;
+        }
+        seenPositions.add(posKey);
+
+        const pos = new AMap.LngLat(lng, lat);
 
         const marker = new AMap.CircleMarker({
             center: pos,
@@ -138,23 +155,31 @@
             cursor: 'pointer'
         });
 
+        // 修复：使用 clean_geo 逻辑类似的简单处理，移除前端弹窗里的冗长坐标
+        // 格式通常是 "31.23,121.47 Shanghai" -> 提取 "Shanghai"
+        let displayLabel = m.label || '';
+        // 正则替换掉开头的数字坐标
+        displayLabel = displayLabel.replace(/^[\d\.\-,]+\s+/, '');
+        if (!displayLabel.trim()) displayLabel = '';
+
+        // 限制最大宽度 max-width 和 white-space，防止单行过长导致偏移
         let html = `
-            <div style="min-width:200px;color:#fff;">
+            <div style="min-width:180px; max-width:240px; color:#fff; white-space:normal;">
                 <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;letter-spacing:0.14em;text-transform:uppercase;color:#aaa;margin-bottom:4px;">
                     ${m.timestamp || ''}
                 </div>
-                <div style="font-family:'Inter',sans-serif;font-size:0.9rem;color:#fff;margin-bottom:4px;">
+                <div style="font-family:'Inter',sans-serif;font-size:0.9rem;color:#fff;margin-bottom:4px;word-wrap:break-word;">
                     ${m.snippet || ''}
                 </div>
                 <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:#888;">
-                    ${m.label || ''}
+                    ${displayLabel}
                 </div>
             </div>
         `;
         if (m.image) {
             html = `
-                <div style="min-width:220px;color:#fff;">
-                    <img src="${m.image}" style="width:100%;border-radius:8px;margin-bottom:6px;" />
+                <div style="min-width:220px; max-width:260px; color:#fff; white-space:normal;">
+                    <img src="${m.image}" style="width:100%;border-radius:8px;margin-bottom:6px;display:block;" />
                     ${html}
                 </div>
             `;
@@ -163,17 +188,21 @@
         marker.on('click', () => {
             const info = new AMap.InfoWindow({
                 content: html,
-                offset: new AMap.Pixel(0, -8),
+                // 微调 offset，使气泡箭头更准确指向圆点
+                offset: new AMap.Pixel(0, -6),
                 anchor: 'bottom-center',
-                isCustom: false
+                isCustom: false,
+                closeWhenClickMap: true,
+                autoMove: true
             });
             info.open(map, pos);
         });
 
-        // 【修复2】直接添加到地图，不使用 OverlayGroup 以避免兼容性问题
+        // 【修复2】直接添加到地图
         marker.setMap(map);
 
         markerCount += 1;
+        // 热力图数据尽量使用原始坐标
         heatData.push({ lng: m.lng, lat: m.lat, count: 1 });
     }
 
