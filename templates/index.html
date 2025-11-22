@@ -1055,6 +1055,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 
 <script>
+    // ===== 调试代码：诊断重复元素 =====
+    window.addEventListener('DOMContentLoaded', function() {
+        const hudClock = document.getElementById('hud-clock');
+        if (hudClock) {
+            console.log('HUD Clock 初始状态:');
+            console.log('子元素数量:', hudClock.children.length);
+            console.log('HTML内容:', hudClock.innerHTML);
+            console.log('所有子元素:', Array.from(hudClock.children).map(el => ({
+                tag: el.tagName,
+                class: el.className,
+                text: el.textContent
+            })));
+        }
+    });
     const prefersReducedMotion =
         window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1500,11 +1514,8 @@
 
         initTypewriter(scope);
     }
-
-    /* 单行高亮修复 + 实时日期显示逻辑（最终修复版） */
-    /* 时间显示重构：顶部 HUD 是唯一的“时钟”，每条记录只显示自己的时间 */
-// 顶部 HUD 只保留一个时间块，避免叠加
-    /* 单行高亮修复 + 顶部 HUD 时间唯一化 */
+/* ===== 顶部 HUD 时钟 + 时间轴高亮联动 ===== */
+/* ===== 顶部 HUD 时钟 + 时间轴高亮联动 ===== */
     const timelineGrid = document.querySelector('.timeline-grid');
     const hudClock = document.getElementById('hud-clock');
 
@@ -1512,32 +1523,49 @@
     let activeRow = null;
     let hudMode = 'now';   // 'now' | 'memory'
 
-    /** 核心：统一在这里重建 HUD DOM，保证始终只有两个 span */
+    // 确保 HUD 容器存在且初始化为空
+    if (hudClock) {
+        hudClock.dataset.controlled = 'true';
+        hudClock.innerHTML = '';  // 强制清空
+
+        // 预先创建两个固定的 span 元素，之后只更新内容
+        const dateSpan = document.createElement('span');
+        dateSpan.className = 'hud-date';
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'hud-time';
+
+        hudClock.appendChild(dateSpan);
+        hudClock.appendChild(timeSpan);
+    }
+
+    /** 统一更新 HUD 显示 - 只更新文本，不创建新元素 */
     function renderHud(dateText, timeText) {
         if (!hudClock) return;
 
-        // 使用 replaceChildren() 方法，比 innerHTML = '' 更可靠
-        // 或者先移除所有子节点
-        while (hudClock.firstChild) {
-            hudClock.firstChild.remove();
+        // 直接获取已存在的两个 span（必定存在）
+        const dateSpan = hudClock.querySelector('.hud-date');
+        const timeSpan = hudClock.querySelector('.hud-time');
+
+        if (!dateSpan || !timeSpan) {
+            console.error('HUD Clock 元素异常，正在重建...');
+            hudClock.innerHTML = '';
+            const newDateSpan = document.createElement('span');
+            newDateSpan.className = 'hud-date';
+            const newTimeSpan = document.createElement('span');
+            newTimeSpan.className = 'hud-time';
+            hudClock.appendChild(newDateSpan);
+            hudClock.appendChild(newTimeSpan);
+            newDateSpan.textContent = dateText || '';
+            newTimeSpan.textContent = timeText || '';
+            return;
         }
 
-        const dSpan = document.createElement('span');
-        dSpan.className = 'hud-date';
-        dSpan.textContent = dateText || '';
-
-        const tSpan = document.createElement('span');
-        tSpan.className = 'hud-time';
-        tSpan.textContent = timeText || '';
-
-        // 使用 DocumentFragment 批量添加,避免多次重绘
-        const fragment = document.createDocumentFragment();
-        fragment.appendChild(dSpan);
-        fragment.appendChild(tSpan);
-        hudClock.appendChild(fragment);
+        // 只更新文本内容，不操作 DOM 结构
+        dateSpan.textContent = dateText || '';
+        timeSpan.textContent = timeText || '';
     }
 
-    /** 实时时间 */
+    /** 获取当前实时时间 */
     function getRealTime() {
         const now = new Date();
         const pad = (n) => String(n).padStart(2, '0');
@@ -1547,69 +1575,80 @@
         };
     }
 
-    /** HUD 显示"现在" */
+    /** 显示实时时间 */
     function renderHudNow() {
         const { date, time } = getRealTime();
         renderHud(date, time);
     }
 
-    /** 进入"当前时间模式"：每秒刷新一次 */
+    /** 进入"实时时间"模式 */
     function enterNowMode() {
         hudMode = 'now';
         if (!hudClock) return;
 
-        if (hudTimer) clearInterval(hudTimer);
+        // 清除旧定时器
+        if (hudTimer) {
+            clearInterval(hudTimer);
+            hudTimer = null;
+        }
+
+        // 立即显示一次
         renderHudNow();
+
+        // 每秒更新
         hudTimer = setInterval(() => {
             if (hudMode !== 'now') return;
             renderHudNow();
         }, 1000);
     }
 
-    /** HUD 显示某一条时间轴记录的时间（停止自动走时） */
+    /** 显示时间轴记录的时间（停止实时走时） */
     function showHudForRow(row) {
         if (!hudClock || !row) return;
 
         hudMode = 'memory';
+
+        // 停止实时更新
         if (hudTimer) {
             clearInterval(hudTimer);
             hudTimer = null;
         }
 
-        const label = row.querySelector('.time-label');
+        // 从 time-wrapper 中查找 time-label
+        const timeWrapper = row.querySelector('.time-wrapper');
+        if (!timeWrapper) return;
+
+        const label = timeWrapper.querySelector('.time-label');
         if (!label) return;
 
-        const dateText =
-            label.dataset.date ||
-            (label.querySelector('.date-part')?.textContent) ||
-            '';
-        const timeText =
-            label.dataset.time ||
-            (label.querySelector('.time-part')?.textContent) ||
-            '';
+        // 优先使用 data 属性
+        const dateText = label.dataset.date || label.querySelector('.date-part')?.textContent || '';
+        const timeText = label.dataset.time || label.querySelector('.time-part')?.textContent || '';
 
         renderHud(dateText, timeText);
     }
 
-    /** 切换时间轴高亮 + 顶部 HUD 内容 */
+    /** 设置高亮行 */
     function setActiveRow(row) {
         if (activeRow === row) return;
 
+        // 移除旧高亮
         if (activeRow) {
             activeRow.classList.remove('timeline-row--active');
         }
 
         activeRow = row;
 
+        // 添加新高亮并更新 HUD
         if (row) {
-            activeRow.classList.add('timeline-row--active');
+            row.classList.add('timeline-row--active');
             showHudForRow(row);
         } else {
             enterNowMode();
         }
     }
 
-    /** 为时间轴行绑定 hover 事件（含懒加载行） */
+    /** 绑定时间轴 hover 事件 - 绑定到整个 row 而不是单独的元素 */
     function bindTimelineHover(root) {
         const scope = root || document;
         const rows = scope.querySelectorAll('.timeline-row:not([data-hover-bound])');
@@ -1617,6 +1656,7 @@
         rows.forEach((row) => {
             row.dataset.hoverBound = '1';
 
+            // 关键修复：监听整个 row 的 hover，而不是分别监听左右两侧
             row.addEventListener('mouseenter', () => {
                 setActiveRow(row);
                 if (cursorGlow) cursorGlow.classList.add('cursor-glow--active');
@@ -1629,8 +1669,8 @@
         });
     }
 
-    // 初始化：先进入"当前时间"模式,再绑定 hover
-    enterNowMode();
+    // ===== 初始化 =====
+    enterNowMode();  // 先进入实时时间模式
     if (timelineGrid) {
         bindTimelineHover(document);
     }
