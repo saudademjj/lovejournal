@@ -1,7 +1,8 @@
 import os
 import re
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from functools import lru_cache
 
 import requests
 
@@ -208,11 +209,21 @@ def create_app():
         except ValueError:
             return None
 
-    @lru_cache(maxsize=64)
+    geocode_cache = {}
+    geocode_inflight = set()
+    geocode_lock = threading.Lock()
+    geocode_executor = ThreadPoolExecutor(max_workers=4)
+
     def geocode_location(location_text):
         """使用高德 Web API 将地点文本转为坐标，缓存结果减少重复请求"""
         if not location_text:
             return None
+
+        with geocode_lock:
+            if location_text in geocode_cache:
+                return geocode_cache[location_text]
+
+        result = None
         try:
             resp = requests.get(
                 "https://restapi.amap.com/v3/geocode/geo",
@@ -220,19 +231,41 @@ def create_app():
                 timeout=4,
             )
             data = resp.json()
-            if data.get("status") != "1":
-                return None
-            geocodes = data.get("geocodes") or []
-            if not geocodes:
-                return None
-            loc = geocodes[0].get("location", "")
-            nums = coord_number_re.findall(loc)
-            if len(nums) < 2:
-                return None
-            lng, lat = float(nums[0]), float(nums[1])
-            return lat, lng
+            if data.get("status") == "1":
+                geocodes = data.get("geocodes") or []
+                if geocodes:
+                    loc = geocodes[0].get("location", "")
+                    nums = coord_number_re.findall(loc)
+                    if len(nums) >= 2:
+                        lng, lat = float(nums[0]), float(nums[1])
+                        result = (lat, lng)
         except Exception:
-            return None
+            result = None
+
+        with geocode_lock:
+            geocode_cache[location_text] = result
+        return result
+
+    def get_cached_geocode(location_text):
+        with geocode_lock:
+            return geocode_cache.get(location_text)
+
+    def schedule_geocode(location_text):
+        if not location_text:
+            return
+        with geocode_lock:
+            if location_text in geocode_cache or location_text in geocode_inflight:
+                return
+            geocode_inflight.add(location_text)
+
+        def task():
+            try:
+                geocode_location(location_text)
+            finally:
+                with geocode_lock:
+                    geocode_inflight.discard(location_text)
+
+        geocode_executor.submit(task)
 
     def build_on_this_day():
         """
@@ -325,7 +358,9 @@ def create_app():
         def append_marker(item, kind, label, timestamp, snippet, image=None):
             coords = parse_coords_from_location(getattr(item, "location", None))
             if not coords:
-                coords = geocode_location(label)
+                coords = get_cached_geocode(label)
+                if not coords:
+                    schedule_geocode(label)
             lat = lng = None
             if coords:
                 lat, lng = coords
