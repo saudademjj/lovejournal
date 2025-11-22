@@ -1504,50 +1504,61 @@
     /* 单行高亮修复 + 实时日期显示逻辑（最终修复版） */
     /* 时间显示重构：顶部 HUD 是唯一的“时钟”，每条记录只显示自己的时间 */
 // 顶部 HUD 只保留一个时间块，避免叠加
+    /* 单行高亮修复 + 顶部 HUD 时间唯一化 */
     const timelineGrid = document.querySelector('.timeline-grid');
     const hudClock = document.getElementById('hud-clock');
 
     let hudTimer = null;
     let activeRow = null;
-    let hudMode = 'now'; // 'now' | 'memory'
+    let hudMode = 'now';   // 'now' | 'memory'
 
-// 1. 初始化 HUD：清掉之前 append 的所有 label，只保留 date / time 两个 span
-    function initHudClock() {
+    /** 核心：统一在这里重建 HUD DOM，保证始终只有两个 span */
+    function renderHud(dateText, timeText) {
         if (!hudClock) return;
-        hudClock.innerHTML = `
-            <span class="hud-date"></span>
-            <span class="hud-time"></span>
-        `;
+
+        // 使用 replaceChildren() 方法，比 innerHTML = '' 更可靠
+        // 或者先移除所有子节点
+        while (hudClock.firstChild) {
+            hudClock.firstChild.remove();
+        }
+
+        const dSpan = document.createElement('span');
+        dSpan.className = 'hud-date';
+        dSpan.textContent = dateText || '';
+
+        const tSpan = document.createElement('span');
+        tSpan.className = 'hud-time';
+        tSpan.textContent = timeText || '';
+
+        // 使用 DocumentFragment 批量添加,避免多次重绘
+        const fragment = document.createDocumentFragment();
+        fragment.appendChild(dSpan);
+        fragment.appendChild(tSpan);
+        hudClock.appendChild(fragment);
     }
-    initHudClock();
 
-    const hudDateEl = hudClock?.querySelector('.hud-date');
-    const hudTimeEl = hudClock?.querySelector('.hud-time');
-
-// 2. 当前时间
+    /** 实时时间 */
     function getRealTime() {
         const now = new Date();
-        const pad = n => String(n).padStart(2, '0');
+        const pad = (n) => String(n).padStart(2, '0');
         return {
             date: `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())}`,
-            time: `${pad(now.getHours())}:${pad(now.getMinutes())}`
+            time: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
         };
     }
 
-// 把“此刻时间”渲染到 HUD
+    /** HUD 显示"现在" */
     function renderHudNow() {
-        if (!hudDateEl || !hudTimeEl) return;
         const { date, time } = getRealTime();
-        hudDateEl.textContent = date;
-        hudTimeEl.textContent = time;
+        renderHud(date, time);
     }
 
-// 进入“当前时间模式”：只更新 textContent，不创建新节点
+    /** 进入"当前时间模式"：每秒刷新一次 */
     function enterNowMode() {
         hudMode = 'now';
         if (!hudClock) return;
 
-        clearInterval(hudTimer);
+        if (hudTimer) clearInterval(hudTimer);
         renderHudNow();
         hudTimer = setInterval(() => {
             if (hudMode !== 'now') return;
@@ -1555,48 +1566,50 @@
         }, 1000);
     }
 
-// 显示某条时间轴记录的时间到 HUD（停止自动走时）
+    /** HUD 显示某一条时间轴记录的时间（停止自动走时） */
     function showHudForRow(row) {
-        if (!hudClock || !row || !hudDateEl || !hudTimeEl) return;
+        if (!hudClock || !row) return;
 
         hudMode = 'memory';
-        clearInterval(hudTimer);
-        hudTimer = null;
+        if (hudTimer) {
+            clearInterval(hudTimer);
+            hudTimer = null;
+        }
 
         const label = row.querySelector('.time-label');
         if (!label) return;
 
         const dateText =
             label.dataset.date ||
-            label.querySelector('.date-part')?.textContent ||
+            (label.querySelector('.date-part')?.textContent) ||
             '';
         const timeText =
             label.dataset.time ||
-            label.querySelector('.time-part')?.textContent ||
+            (label.querySelector('.time-part')?.textContent) ||
             '';
 
-        hudDateEl.textContent = dateText;
-        hudTimeEl.textContent = timeText;
+        renderHud(dateText, timeText);
     }
 
-// 切换时间轴高亮行
+    /** 切换时间轴高亮 + 顶部 HUD 内容 */
     function setActiveRow(row) {
         if (activeRow === row) return;
 
         if (activeRow) {
             activeRow.classList.remove('timeline-row--active');
         }
+
         activeRow = row;
 
         if (row) {
             activeRow.classList.add('timeline-row--active');
             showHudForRow(row);
         } else {
-            enterNowMode(); // 没有 hover 时回到实时模式
+            enterNowMode();
         }
     }
 
-    // 为时间轴行绑定 hover
+    /** 为时间轴行绑定 hover 事件（含懒加载行） */
     function bindTimelineHover(root) {
         const scope = root || document;
         const rows = scope.querySelectorAll('.timeline-row:not([data-hover-bound])');
@@ -1604,16 +1617,24 @@
         rows.forEach((row) => {
             row.dataset.hoverBound = '1';
 
-            row.addEventListener('mouseenter', () => setActiveRow(row));
-            row.addEventListener('mouseleave', () => setActiveRow(null));
+            row.addEventListener('mouseenter', () => {
+                setActiveRow(row);
+                if (cursorGlow) cursorGlow.classList.add('cursor-glow--active');
+            });
+
+            row.addEventListener('mouseleave', () => {
+                setActiveRow(null);
+                if (cursorGlow) cursorGlow.classList.remove('cursor-glow--active');
+            });
         });
     }
 
-    // 初始化
+    // 初始化：先进入"当前时间"模式,再绑定 hover
     enterNowMode();
     if (timelineGrid) {
         bindTimelineHover(document);
     }
+
 
 
     /* 磁吸效果：只作用在 axis-dot / dock 按钮等，不再影响 entry-card */
