@@ -17,7 +17,7 @@
         box-shadow: 0 30px 80px rgba(0,0,0,0.9);
         border: 1px solid rgba(255,255,255,0.06);
         background: #0f0f0f;
-        position: relative; /* For custom controls */
+        position: relative;
     }
 
     /* Legend / Filter Bar */
@@ -74,7 +74,7 @@
     .map-dot.photo { background: var(--neon-blue); box-shadow: 0 0 0 2px rgba(43,0,255,0.16); }
     .map-dot.keydate { background: var(--neon-pink); box-shadow: 0 0 0 2px rgba(255,0,60,0.18); }
 
-    /* Zoom Controls (Minimal & Beautiful) */
+    /* Zoom Controls */
     .map-zoom-controls {
         position: absolute;
         bottom: 3rem;
@@ -126,7 +126,6 @@
         position: relative;
     }
 
-    /* Little triangle arrow at bottom */
     .amap-info-window-custom::after {
         content: '';
         position: absolute;
@@ -175,7 +174,6 @@
         font-family: 'JetBrains Mono', monospace;
         font-size: 0.6rem;
         letter-spacing: 0.08em;
-        /* 【修复】调亮颜色，确保可见 */
         color: #999;
         border-top: 1px solid rgba(255,255,255,0.08);
         padding-top: 0.4rem;
@@ -249,10 +247,9 @@
     });
 
     const validMarkers = markersData.filter(m => m.lat !== null && m.lng !== null);
-    let markerInstances = []; // Store references for filtering
+    let markerInstances = [];
     let currentInfoWindow = null;
 
-    // Filter State
     const filterState = {
         entry: true,
         photo: true,
@@ -296,26 +293,15 @@
         return new AMap.LngLat(lng, lat);
     }
 
-    // 【修复重点】强制显示经纬度
-    // 即使 originalLabel 里没有数字，也会根据 lat/lng 补上 "36 101"
     function formatGeoLabel(originalLabel, lat, lng) {
-        // 先尝试清理原始 label 中的旧坐标（如果有的话）
         let text = originalLabel || '';
-        text = text.replace(/^[\d\.\-,]+\s*/, ''); // 去除开头的坐标
-
-        // 确保是数字类型
+        text = text.replace(/^[\d\.\-,]+\s*/, '');
         const latNum = parseFloat(lat);
         const lngNum = parseFloat(lng);
-
         if (isNaN(latNum) || isNaN(lngNum)) return text;
-
         const latInt = Math.floor(latNum);
         const lngInt = Math.floor(lngNum);
-
-        // 极简风格 "36 101"
         const coordsStr = `${latInt} ${lngInt}`;
-
-        // 只有地名就补坐标，有地名就拼接
         if (text) {
             return `${coordsStr} ${text}`;
         }
@@ -373,7 +359,6 @@
 
         marker.setMap(map);
         markerInstances.push(marker);
-
         heatData.push({ lng: m.lng, lat: m.lat, count: 1 });
     }
 
@@ -386,14 +371,12 @@
 
     window.toggleFilter = function(type) {
         filterState[type] = !filterState[type];
-
         const el = document.getElementById('filter-' + type);
         if (filterState[type]) {
             el.classList.remove('is-off');
         } else {
             el.classList.add('is-off');
         }
-
         markerInstances.forEach(marker => {
             const k = marker.getExtData().kind;
             if (filterState[k]) {
@@ -404,17 +387,15 @@
         });
     };
 
-    // 【修复重点】平滑缩放
-    // 使用高德原生的 zoomIn / zoomOut 实现动画
+    // 【修复重点】使用 setZoom 配合 duration 实现平滑缩放
     window.zoomIn = function() {
-        map.zoomIn();
+        map.setZoom(map.getZoom() + 1, false, 400);
     };
 
     window.zoomOut = function() {
-        map.zoomOut();
+        map.setZoom(map.getZoom() - 1, false, 400);
     };
 
-    // Init
     validMarkers.forEach(m => buildMarker(m));
 
     if (heatmap && heatData.length) {
