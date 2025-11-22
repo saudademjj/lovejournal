@@ -1,4 +1,5 @@
 import os
+import queue
 import re
 import threading
 from datetime import datetime
@@ -210,6 +211,8 @@ def create_app():
 
     geocode_cache = {}
     geocode_lock = threading.Lock()
+    geocode_queue: queue.Queue[str] = queue.Queue()
+    geocode_pending = set()
 
     def geocode_location(location_text):
         """使用高德 Web API 将地点文本转为坐标，缓存结果减少重复请求"""
@@ -243,6 +246,23 @@ def create_app():
             geocode_cache[location_text] = result
         return result
 
+    def geocode_worker():
+        while True:
+            location_text = geocode_queue.get()
+            try:
+                if not location_text:
+                    continue
+                with geocode_lock:
+                    if location_text in geocode_cache:
+                        continue
+                geocode_location(location_text)
+            finally:
+                with geocode_lock:
+                    geocode_pending.discard(location_text)
+                geocode_queue.task_done()
+
+    threading.Thread(target=geocode_worker, daemon=True).start()
+
     def resolve_location(location_text):
         """
         统一把地点文本转换为 (lat, lng)：
@@ -263,6 +283,28 @@ def create_app():
 
         # 缓存里也没有，直接请求一次
         return geocode_location(location_text)
+
+    def resolve_location_async(location_text):
+        """
+        在请求线程里尽量不阻塞：
+        1. 尝试解析坐标或读取缓存
+        2. 未命中时把地址放到后台队列，等待异步 geocode_worker 处理
+        """
+        if not location_text:
+            return None
+
+        coords = parse_coords_from_location(location_text)
+        if coords:
+            return coords
+
+        with geocode_lock:
+            if location_text in geocode_cache:
+                return geocode_cache[location_text]
+            if location_text not in geocode_pending:
+                geocode_pending.add(location_text)
+                geocode_queue.put(location_text)
+
+        return None
 
     def build_on_this_day():
         """
@@ -353,9 +395,9 @@ def create_app():
         markers = []
 
         def append_marker(item, kind, label, timestamp, snippet, image=None):
-            coords = resolve_location(getattr(item, "location", None))
+            coords = resolve_location_async(getattr(item, "location", None))
             if not coords:
-                coords = resolve_location(label)
+                coords = resolve_location_async(label)
             if not coords:
                 return
 
