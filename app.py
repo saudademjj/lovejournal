@@ -48,7 +48,6 @@ def create_app():
         created_at = db.Column(db.DateTime, nullable=False, default=datetime.now, index=True)
         content = db.Column(db.Text, nullable=False)
         location = db.Column(db.String(255))
-        # 用逗号分隔的小写标签，如 "旅行,吵架"
         tags = db.Column(db.String(255))
 
     class KeyDate(db.Model):
@@ -67,7 +66,7 @@ def create_app():
         tags = db.Column(db.String(255))
 
     with app.app_context():
-        db.create_all()  # 如果新增字段（location/tags）报错，需要迁移或重建库
+        db.create_all()
 
     # ========== Helpers ==========
 
@@ -77,7 +76,6 @@ def create_app():
     @app.context_processor
     def inject_helpers():
         def get_days_diff(d):
-            """返回 (diff, state)；state: past / future / today"""
             if not isinstance(d, datetime):
                 return (0, "today")
             today = datetime.now().date()
@@ -90,28 +88,40 @@ def create_app():
 
         return dict(get_days_diff=get_days_diff)
 
-    # 新增：清洗地理位置显示，去除前面的坐标数字
+    # 【修复重点】增强的坐标过滤器
+    # 无论输入是 "36.6,101.7 西宁" 还是 "36.6 101.7 西宁"，都能提取 "36 101 西宁"
     @app.template_filter('clean_geo')
     def clean_geo_filter(value):
         if not value:
             return ""
-        # 匹配开头格式如 "31.23,121.47 " 的坐标部分
-        # 必须是数字+逗号+数字+空格
-        pattern = r'^[\d\.\-]+,[\d\.\-]+\s+'
-        cleaned = re.sub(pattern, '', value)
 
-        # 如果清洗后还有内容（说明有地名），就只返回地名
-        if cleaned.strip():
-            return cleaned.strip()
+        # 匹配逻辑：
+        # 1. 第一组数字 (整数部分)
+        # 2. 中间忽略小数、逗号、空格
+        # 3. 第二组数字 (整数部分)
+        # 4. 剩余文本
+        # 这个正则非常宽容，只要开头有两个数字组，就能识别
+        pattern = r'^.*?(-?\d+)(?:\.\d+)?[,，\s]+(-?\d+)(?:\.\d+)?\s*(.*)$'
+        match = re.match(pattern, value.strip())
 
-        # 如果清洗后没内容了（说明只有坐标），直接返回空，或者你想要简短坐标也可以
-        # 这里为了美观，如果只有纯坐标，就不显示了，或者你可以改成 return "📍"
-        return ""
+        if match:
+            lat_int = match.group(1)
+            lng_int = match.group(2)
+            rest_text = match.group(3)
+
+            # 组合成 "36 101" 风格
+            coord_part = f"{lat_int} {lng_int}"
+
+            # 如果后面还有地名，就拼上去
+            if rest_text:
+                return f"{coord_part} {rest_text}"
+            return coord_part
+
+        return value
 
     tag_pattern = re.compile(r"#([\w\u4e00-\u9fa5]+)")
 
     def extract_tags(*texts):
-        """从多段文本里解析 #标签，全部转小写去重"""
         found = set()
         for t in texts:
             if not t:
@@ -121,7 +131,6 @@ def create_app():
         return sorted(found)
 
     def build_tag_index():
-        """把所有 Entry/Photo/KeyDate 里的 tags 字段扫一遍，做个标签云"""
         all_tags = set()
         for model in (Entry, Photo, KeyDate):
             for item in model.query.all():
@@ -134,12 +143,6 @@ def create_app():
         return sorted(all_tags)
 
     def build_timeline(search=None, type_filter=None, tag=None):
-        """
-        混排 Entry / KeyDate / Photo 成时间轴列表
-        search: 关键词
-        type_filter: all / entry / photo / keydate
-        tag: 单个标签过滤
-        """
         search = (search or "").strip().lower()
         type_filter = (type_filter or "all").lower()
         tag = (tag or "").strip().lower()
@@ -203,13 +206,6 @@ def create_app():
     amap_key = os.getenv("AMAP_WEB_KEY", "fd67dbc2f43a792a5a2aa190e3a49d92")
 
     def parse_coords_from_location(location_text):
-        """
-        更鲁棒的坐标解析：
-        - 支持 '31.23,121.47 Shanghai'
-        - 支持 '31.23 121.47'
-        - 自动忽略后面的中文或其他文本
-        - 如果用户把「经纬度」写反（高德接口返回 lng,lat），自动调整
-        """
         if not location_text:
             return None
         text = str(location_text).replace("，", ",")
@@ -219,7 +215,6 @@ def create_app():
         try:
             lat = float(nums[0])
             lng = float(nums[1])
-            # 如果首个数值不在正常纬度范围，而第二个数值在，则认为用户写反了
             if abs(lat) > 90 and abs(lat) <= 180 and abs(lng) <= 90:
                 lat, lng = lng, lat
             return lat, lng
@@ -232,7 +227,6 @@ def create_app():
     geocode_pending = set()
 
     def geocode_location(location_text):
-        """使用高德 Web API 将地点文本转为坐标，缓存结果减少重复请求"""
         if not location_text:
             return None
 
@@ -281,53 +275,17 @@ def create_app():
     threading.Thread(target=geocode_worker, daemon=True).start()
 
     def resolve_location(location_text):
-        """
-        统一把地点文本转换为 (lat, lng)：
-        1. 先尝试从文本中直接解析坐标
-        2. 再尝试从缓存里取
-        3. 最后同步调用高德地理编码接口
-        """
         if not location_text:
             return None
-
         coords = parse_coords_from_location(location_text)
         if coords:
             return coords
-
         with geocode_lock:
             if location_text in geocode_cache:
                 return geocode_cache[location_text]
-
-        # 缓存里也没有，直接请求一次
         return geocode_location(location_text)
 
-    def resolve_location_async(location_text):
-        """
-        在请求线程里尽量不阻塞：
-        1. 尝试解析坐标或读取缓存
-        2. 未命中时把地址放到后台队列，等待异步 geocode_worker 处理
-        """
-        if not location_text:
-            return None
-
-        coords = parse_coords_from_location(location_text)
-        if coords:
-            return coords
-
-        with geocode_lock:
-            if location_text in geocode_cache:
-                return geocode_cache[location_text]
-            if location_text not in geocode_pending:
-                geocode_pending.add(location_text)
-                geocode_queue.put(location_text)
-
-        return None
-
     def build_on_this_day():
-        """
-        “那年今日”：找出往年同月同日的记录（不包含今年）
-        返回按时间倒序的列表（可能多条）
-        """
         today = datetime.now()
         full = build_timeline()
         result = []
@@ -335,7 +293,6 @@ def create_app():
             ts = node["timestamp"]
             if ts.month == today.month and ts.day == today.day and ts.year < today.year:
                 result.append(node)
-        # 最新的在前
         result.sort(key=lambda x: x["timestamp"], reverse=True)
         return result
 
@@ -361,7 +318,6 @@ def create_app():
         all_tags = build_tag_index()
 
         on_this_day = None
-        # 只在“默认视图”下显示那年今日：没有搜索、没有过滤、没有标签
         if not search_query and filter_type == "all" and not selected_tag:
             otd_list = build_on_this_day()
             if otd_list:
@@ -383,7 +339,6 @@ def create_app():
 
     @app.route("/api/timeline")
     def api_timeline():
-        """无限滚动加载更多时间轴行"""
         search_query = request.args.get("q", "")
         filter_type = request.args.get("type", "all")
         selected_tag = request.args.get("tag", "").strip().lower()
@@ -408,11 +363,9 @@ def create_app():
 
     @app.route("/map")
     def map_view():
-        """地图视图 + 热力图"""
         markers = []
 
         def append_marker(item, kind, label, timestamp, snippet, image=None):
-            # 用同步解析，确保立即拿到坐标；否则会被跳过导致地图空白
             coords = resolve_location(getattr(item, "location", None))
             if not coords:
                 coords = resolve_location(label)
@@ -420,7 +373,6 @@ def create_app():
                 return
 
             lat, lng = coords
-
             markers.append(
                 {
                     "id": item.id,
@@ -440,7 +392,7 @@ def create_app():
                 "entry",
                 e.location,
                 e.created_at.strftime("%Y-%m-%d %H:%M"),
-                (e.content or "")[:80],
+                (e.content or "")[:120],
             )
 
         for k in KeyDate.query.all():
@@ -449,7 +401,7 @@ def create_app():
                 "keydate",
                 k.location,
                 k.date.strftime("%Y-%m-%d %H:%M"),
-                (k.title or "")[:80],
+                (k.title or "")[:120],
             )
 
         for p in Photo.query.all():
@@ -458,7 +410,7 @@ def create_app():
                 "photo",
                 p.location,
                 p.created_at.strftime("%Y-%m-%d %H:%M"),
-                (p.caption or "")[:80],
+                (p.caption or "")[:120],
                 image=url_for("uploaded_file", filename=p.filename),
             )
 
@@ -467,12 +419,6 @@ def create_app():
     # ====== Create ======
 
     def merge_location_and_coords(location_text, coords_text):
-        """
-        把前端写入的地点文本 + coords 拼在一起：
-        - coords 为 "lat,lng"
-        - 存库格式："lat,lng 北京 三里屯"
-        - 若用户没点 AUTO，也尝试后端同步地理编码，避免地图为空
-        """
         location_text = (location_text or "").strip()
         coords_text = (coords_text or "").strip()
 
@@ -487,7 +433,6 @@ def create_app():
 
         coords_pair = parse_coords_text(coords_text) if coords_text else None
 
-        # 没有前端返回的坐标，则用后端同步解析一次
         if not coords_pair and location_text:
             coords_pair = resolve_location(location_text)
 
@@ -640,7 +585,6 @@ def create_app():
                     save_name = f"{base}_{count}{ext}"
                     count += 1
                 file.save(os.path.join(app.config["UPLOAD_FOLDER"], save_name))
-                # 删除旧文件
                 old_path = os.path.join(app.config["UPLOAD_FOLDER"], item.filename)
                 if os.path.exists(old_path):
                     try:

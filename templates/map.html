@@ -16,8 +16,11 @@
         overflow: hidden;
         box-shadow: 0 30px 80px rgba(0,0,0,0.9);
         border: 1px solid rgba(255,255,255,0.06);
+        background: #0f0f0f;
+        position: relative; /* For custom controls */
     }
 
+    /* Legend / Filter Bar */
     .map-legend {
         position: absolute;
         top: 140px;
@@ -36,6 +39,7 @@
         align-items: center;
         gap: 1rem;
         box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+        backdrop-filter: blur(12px);
     }
 
     .legend-item {
@@ -46,16 +50,144 @@
         border-radius: 999px;
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(255,255,255,0.05);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        user-select: none;
+    }
+    .legend-item:hover {
+        background: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.15);
+    }
+    .legend-item.is-off {
+        opacity: 0.4;
+        background: transparent;
+        border-color: transparent;
     }
 
     .map-dot {
         width: 8px;
         height: 8px;
         border-radius: 50%;
+        transition: background 0.3s ease;
     }
     .map-dot.entry { background: #ffffff; box-shadow: 0 0 0 2px rgba(255,255,255,0.1); }
     .map-dot.photo { background: var(--neon-blue); box-shadow: 0 0 0 2px rgba(43,0,255,0.16); }
     .map-dot.keydate { background: var(--neon-pink); box-shadow: 0 0 0 2px rgba(255,0,60,0.18); }
+
+    /* Zoom Controls (Minimal & Beautiful) */
+    .map-zoom-controls {
+        position: absolute;
+        bottom: 3rem;
+        right: 3rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+        z-index: 120;
+    }
+    .zoom-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(5,5,5,0.8);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: #f0f0f0;
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.4rem;
+        font-weight: 300;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+        padding: 0;
+        line-height: 1;
+    }
+    .zoom-btn:hover {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+        transform: translateY(-2px);
+    }
+    .zoom-btn:active {
+        transform: translateY(0);
+    }
+
+    /* Custom Info Window Styling */
+    .amap-info-window-custom {
+        background: #050505;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.95);
+        color: #fff;
+        min-width: 220px;
+        max-width: 280px;
+        position: relative;
+    }
+
+    /* Little triangle arrow at bottom */
+    .amap-info-window-custom::after {
+        content: '';
+        position: absolute;
+        bottom: -6px;
+        left: 50%;
+        transform: translateX(-50%) rotate(45deg);
+        width: 10px;
+        height: 10px;
+        background: #050505;
+        border-right: 1px solid rgba(255,255,255,0.12);
+        border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .info-close {
+        position: absolute;
+        top: 6px;
+        right: 8px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.2rem;
+        color: #666;
+        cursor: pointer;
+        line-height: 1;
+        transition: color 0.2s;
+    }
+    .info-close:hover { color: var(--neon-pink); }
+
+    .info-time {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.12em;
+        color: #888;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+    }
+
+    .info-content {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.85rem;
+        line-height: 1.6;
+        color: #e0e0e0;
+        margin-bottom: 0.6rem;
+        word-wrap: break-word;
+    }
+
+    .info-geo {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.6rem;
+        letter-spacing: 0.08em;
+        /* 【修复】调亮颜色，确保可见 */
+        color: #999;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        padding-top: 0.4rem;
+    }
+
+    .info-img {
+        width: 100%;
+        border-radius: 6px;
+        margin-bottom: 0.6rem;
+        display: block;
+        border: 1px solid rgba(255,255,255,0.08);
+    }
 
     @media (max-width: 768px) {
         main { padding: 120px 1.2rem 60px; }
@@ -65,13 +197,33 @@
             right: 1.4rem;
             justify-content: center;
         }
+        .map-zoom-controls {
+            bottom: 2rem;
+            right: 1.5rem;
+        }
+        .zoom-btn {
+            width: 38px;
+            height: 38px;
+            font-size: 1.2rem;
+        }
     }
 </style>
 
 <div class="map-legend" aria-label="Legend for map markers">
-    <span class="legend-item"><span class="map-dot entry"></span>TEXT</span>
-    <span class="legend-item"><span class="map-dot photo"></span>PHOTO</span>
-    <span class="legend-item"><span class="map-dot keydate"></span>DATE</span>
+    <div class="legend-item" id="filter-entry" onclick="toggleFilter('entry')">
+        <span class="map-dot entry"></span>TEXT
+    </div>
+    <div class="legend-item" id="filter-photo" onclick="toggleFilter('photo')">
+        <span class="map-dot photo"></span>PHOTO
+    </div>
+    <div class="legend-item" id="filter-keydate" onclick="toggleFilter('keydate')">
+        <span class="map-dot keydate"></span>DATE
+    </div>
+</div>
+
+<div class="map-zoom-controls">
+    <button type="button" class="zoom-btn" onclick="zoomIn()" aria-label="Zoom In">+</button>
+    <button type="button" class="zoom-btn" onclick="zoomOut()" aria-label="Zoom Out">−</button>
 </div>
 
 <main aria-label="Map of memories">
@@ -79,7 +231,6 @@
 </main>
 
 <script>
-    // 高德 JSAPI 2.0 安全配置
     window._AMapSecurityConfig = {
         securityJsCode: '9a6053273e69e199acb91aae8add03c9'
     };
@@ -87,7 +238,6 @@
 <script src="https://webapi.amap.com/maps?v=2.0&key=7432049c00644e7496cd0151d59380c9&plugin=AMap.HeatMap"></script>
 
 <script>
-    // 【修复1】直接使用 Jinja2 输出 JSON 对象，不要用单引号包裹和 JSON.parse
     const markersData = JSON.parse('{{ markers|tojson|safe }}' || '[]');
 
     const map = new AMap.Map('map', {
@@ -99,7 +249,15 @@
     });
 
     const validMarkers = markersData.filter(m => m.lat !== null && m.lng !== null);
-    let markerCount = 0;
+    let markerInstances = []; // Store references for filtering
+    let currentInfoWindow = null;
+
+    // Filter State
+    const filterState = {
+        entry: true,
+        photo: true,
+        keydate: true
+    };
 
     function colorForKind(kind) {
         if (kind === 'photo') return '#2b00ff';
@@ -107,42 +265,66 @@
         return '#ffffff';
     }
 
-    // 热力图数据
     const heatData = [];
     let heatmap = null;
 
-    // 用于记录坐标点，避免完全重合
-    const seenPositions = new Set();
-
     map.plugin(['AMap.HeatMap'], function () {
         heatmap = new AMap.HeatMap(map, {
-            radius: 25,
-            opacity: [0, 0.8],
+            radius: 35,
+            opacity: [0, 0.7],
         });
-        // 初始化加载热力图
         if(heatData.length > 0) {
-            heatmap.setDataSet({ data: heatData, max: 6 });
+            heatmap.setDataSet({ data: heatData, max: 8 });
         }
     });
 
+    const positionCounts = {};
+
+    function getJitteredPos(lat, lng) {
+        const key = Math.round(lat * 10) + ',' + Math.round(lng * 10);
+        if (!positionCounts[key]) positionCounts[key] = 0;
+        const count = positionCounts[key];
+        positionCounts[key]++;
+
+        if (count > 0) {
+            const angle = count * 137.5 * (Math.PI / 180);
+            const radius = 0.02 * Math.sqrt(count);
+            const newLat = lat + radius * Math.cos(angle);
+            const newLng = lng + radius * Math.sin(angle) * 1.3;
+            return new AMap.LngLat(newLng, newLat);
+        }
+        return new AMap.LngLat(lng, lat);
+    }
+
+    // 【修复重点】强制显示经纬度
+    // 即使 originalLabel 里没有数字，也会根据 lat/lng 补上 "36 101"
+    function formatGeoLabel(originalLabel, lat, lng) {
+        // 先尝试清理原始 label 中的旧坐标（如果有的话）
+        let text = originalLabel || '';
+        text = text.replace(/^[\d\.\-,]+\s*/, ''); // 去除开头的坐标
+
+        // 确保是数字类型
+        const latNum = parseFloat(lat);
+        const lngNum = parseFloat(lng);
+
+        if (isNaN(latNum) || isNaN(lngNum)) return text;
+
+        const latInt = Math.floor(latNum);
+        const lngInt = Math.floor(lngNum);
+
+        // 极简风格 "36 101"
+        const coordsStr = `${latInt} ${lngInt}`;
+
+        // 只有地名就补坐标，有地名就拼接
+        if (text) {
+            return `${coordsStr} ${text}`;
+        }
+        return coordsStr;
+    }
+
     function buildMarker(m) {
         const color = colorForKind(m.kind);
-
-        // --- 坐标扰动逻辑 (Jitter) ---
-        // 检查该坐标是否已经存在，如果存在则添加微小的随机偏移
-        // 0.0002 大约是 20 米左右，足够在视觉上分开
-        let lat = m.lat;
-        let lng = m.lng;
-        // 保留4位小数作为key判定重合
-        const posKey = lat.toFixed(4) + ',' + lng.toFixed(4);
-
-        if (seenPositions.has(posKey)) {
-            lat += (Math.random() - 0.5) * 0.001;
-            lng += (Math.random() - 0.5) * 0.001;
-        }
-        seenPositions.add(posKey);
-
-        const pos = new AMap.LngLat(lng, lat);
+        const pos = getJitteredPos(m.lat, m.lng);
 
         const marker = new AMap.CircleMarker({
             center: pos,
@@ -150,72 +332,97 @@
             strokeColor: color,
             strokeWeight: 1,
             fillColor: color,
-            fillOpacity: 0.85,
-            zIndex: 10,
-            cursor: 'pointer'
+            fillOpacity: 0.9,
+            zIndex: 100,
+            cursor: 'pointer',
+            bubble: true,
+            extData: { kind: m.kind }
         });
 
-        // 修复：使用 clean_geo 逻辑类似的简单处理，移除前端弹窗里的冗长坐标
-        // 格式通常是 "31.23,121.47 Shanghai" -> 提取 "Shanghai"
-        let displayLabel = m.label || '';
-        // 正则替换掉开头的数字坐标
-        displayLabel = displayLabel.replace(/^[\d\.\-,]+\s+/, '');
-        if (!displayLabel.trim()) displayLabel = '';
+        const displayGeo = formatGeoLabel(m.label, m.lat, m.lng);
 
-        // 限制最大宽度 max-width 和 white-space，防止单行过长导致偏移
-        let html = `
-            <div style="min-width:180px; max-width:240px; color:#fff; white-space:normal;">
-                <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;letter-spacing:0.14em;text-transform:uppercase;color:#aaa;margin-bottom:4px;">
-                    ${m.timestamp || ''}
-                </div>
-                <div style="font-family:'Inter',sans-serif;font-size:0.9rem;color:#fff;margin-bottom:4px;word-wrap:break-word;">
-                    ${m.snippet || ''}
-                </div>
-                <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:#888;">
-                    ${displayLabel}
-                </div>
+        let contentHtml = '';
+        if (m.image) {
+            contentHtml += `<img src="${m.image}" class="info-img" loading="lazy">`;
+        }
+        let snippet = m.snippet || '';
+        if (snippet.length > 60) snippet = snippet.substring(0, 60) + '...';
+
+        contentHtml += `<div class="info-content">${snippet}</div>`;
+
+        const html = `
+            <div class="amap-info-window-custom">
+                <span class="info-close" onclick="closeInfoWindow()">×</span>
+                <div class="info-time">${m.timestamp}</div>
+                ${contentHtml}
+                <div class="info-geo">${displayGeo}</div>
             </div>
         `;
-        if (m.image) {
-            html = `
-                <div style="min-width:220px; max-width:260px; color:#fff; white-space:normal;">
-                    <img src="${m.image}" style="width:100%;border-radius:8px;margin-bottom:6px;display:block;" />
-                    ${html}
-                </div>
-            `;
-        }
 
         marker.on('click', () => {
+            if (currentInfoWindow) currentInfoWindow.close();
             const info = new AMap.InfoWindow({
+                isCustom: true,
                 content: html,
-                // 微调 offset，使气泡箭头更准确指向圆点
-                offset: new AMap.Pixel(0, -6),
-                anchor: 'bottom-center',
-                isCustom: false,
-                closeWhenClickMap: true,
+                offset: new AMap.Pixel(0, -12),
                 autoMove: true
             });
             info.open(map, pos);
+            currentInfoWindow = info;
         });
 
-        // 【修复2】直接添加到地图
         marker.setMap(map);
+        markerInstances.push(marker);
 
-        markerCount += 1;
-        // 热力图数据尽量使用原始坐标
         heatData.push({ lng: m.lng, lat: m.lat, count: 1 });
     }
 
+    window.closeInfoWindow = function() {
+        if (currentInfoWindow) {
+            currentInfoWindow.close();
+            currentInfoWindow = null;
+        }
+    };
+
+    window.toggleFilter = function(type) {
+        filterState[type] = !filterState[type];
+
+        const el = document.getElementById('filter-' + type);
+        if (filterState[type]) {
+            el.classList.remove('is-off');
+        } else {
+            el.classList.add('is-off');
+        }
+
+        markerInstances.forEach(marker => {
+            const k = marker.getExtData().kind;
+            if (filterState[k]) {
+                marker.show();
+            } else {
+                marker.hide();
+            }
+        });
+    };
+
+    // 【修复重点】平滑缩放
+    // 使用高德原生的 zoomIn / zoomOut 实现动画
+    window.zoomIn = function() {
+        map.zoomIn();
+    };
+
+    window.zoomOut = function() {
+        map.zoomOut();
+    };
+
+    // Init
     validMarkers.forEach(m => buildMarker(m));
 
-    // 更新热力图
     if (heatmap && heatData.length) {
-        heatmap.setDataSet({ data: heatData, max: 6 });
+        heatmap.setDataSet({ data: heatData, max: 8 });
     }
 
-    // 【修复3】自动缩放视野以包含所有点
-    if (markerCount > 0) {
-        map.setFitView(null, false, [60, 60, 60, 60]);
+    if (markerInstances.length > 0) {
+        map.setFitView(null, false, [100, 60, 100, 60]);
     }
 </script>
 {% endblock %}
