@@ -375,7 +375,7 @@
         text-transform: uppercase;
         white-space: nowrap;
         transition: color 0.25s ease, opacity 0.25s ease, text-shadow 0.3s ease;
-        opacity: 0.9;
+        opacity: 1;
     }
     .time-label span {
         opacity: 0.55;
@@ -1501,31 +1501,120 @@
         initTypewriter(scope);
     }
 
-    /* 单行高亮修复：用事件委托，只允许一行 active，避免“时间重叠感” */
+    /* 单行高亮修复 + 实时日期显示逻辑（最终修复版） */
+    /* 时间显示重构：顶部 HUD 是唯一的“时钟”，每条记录只显示自己的时间 */
+// 顶部 HUD 只保留一个时间块，避免叠加
     const timelineGrid = document.querySelector('.timeline-grid');
+    const hudClock = document.getElementById('hud-clock');
+
+    let hudTimer = null;
+    let activeRow = null;
+    let hudMode = 'now'; // 'now' | 'memory'
+
+// 1. 初始化 HUD：清掉之前 append 的所有 label，只保留 date / time 两个 span
+    function initHudClock() {
+        if (!hudClock) return;
+        hudClock.innerHTML = `
+            <span class="hud-date"></span>
+            <span class="hud-time"></span>
+        `;
+    }
+    initHudClock();
+
+    const hudDateEl = hudClock?.querySelector('.hud-date');
+    const hudTimeEl = hudClock?.querySelector('.hud-time');
+
+// 2. 当前时间
+    function getRealTime() {
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        return {
+            date: `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())}`,
+            time: `${pad(now.getHours())}:${pad(now.getMinutes())}`
+        };
+    }
+
+// 把“此刻时间”渲染到 HUD
+    function renderHudNow() {
+        if (!hudDateEl || !hudTimeEl) return;
+        const { date, time } = getRealTime();
+        hudDateEl.textContent = date;
+        hudTimeEl.textContent = time;
+    }
+
+// 进入“当前时间模式”：只更新 textContent，不创建新节点
+    function enterNowMode() {
+        hudMode = 'now';
+        if (!hudClock) return;
+
+        clearInterval(hudTimer);
+        renderHudNow();
+        hudTimer = setInterval(() => {
+            if (hudMode !== 'now') return;
+            renderHudNow();
+        }, 1000);
+    }
+
+// 显示某条时间轴记录的时间到 HUD（停止自动走时）
+    function showHudForRow(row) {
+        if (!hudClock || !row || !hudDateEl || !hudTimeEl) return;
+
+        hudMode = 'memory';
+        clearInterval(hudTimer);
+        hudTimer = null;
+
+        const label = row.querySelector('.time-label');
+        if (!label) return;
+
+        const dateText =
+            label.dataset.date ||
+            label.querySelector('.date-part')?.textContent ||
+            '';
+        const timeText =
+            label.dataset.time ||
+            label.querySelector('.time-part')?.textContent ||
+            '';
+
+        hudDateEl.textContent = dateText;
+        hudTimeEl.textContent = timeText;
+    }
+
+// 切换时间轴高亮行
     function setActiveRow(row) {
-        document.querySelectorAll('.timeline-row.timeline-row--active').forEach(r => {
-            if (r !== row) r.classList.remove('timeline-row--active');
-        });
-        if (row) row.classList.add('timeline-row--active');
+        if (activeRow === row) return;
+
+        if (activeRow) {
+            activeRow.classList.remove('timeline-row--active');
+        }
+        activeRow = row;
+
+        if (row) {
+            activeRow.classList.add('timeline-row--active');
+            showHudForRow(row);
+        } else {
+            enterNowMode(); // 没有 hover 时回到实时模式
+        }
     }
+
+    // 为时间轴行绑定 hover
+    function bindTimelineHover(root) {
+        const scope = root || document;
+        const rows = scope.querySelectorAll('.timeline-row:not([data-hover-bound])');
+
+        rows.forEach((row) => {
+            row.dataset.hoverBound = '1';
+
+            row.addEventListener('mouseenter', () => setActiveRow(row));
+            row.addEventListener('mouseleave', () => setActiveRow(null));
+        });
+    }
+
+    // 初始化
+    enterNowMode();
     if (timelineGrid) {
-        timelineGrid.addEventListener('mouseover', (e) => {
-            const row = e.target.closest('.timeline-row');
-            if (!row || !timelineGrid.contains(row)) return;
-            setActiveRow(row);
-            if (cursorGlow) cursorGlow.classList.add('cursor-glow--active');
-        });
-        timelineGrid.addEventListener('mouseout', (e) => {
-            const related = e.relatedTarget && e.relatedTarget.closest
-                ? e.relatedTarget.closest('.timeline-row')
-                : null;
-            if (!related || !timelineGrid.contains(related)) {
-                setActiveRow(null);
-                if (cursorGlow) cursorGlow.classList.remove('cursor-glow--active');
-            }
-        });
+        bindTimelineHover(document);
     }
+
 
     /* 磁吸效果：只作用在 axis-dot / dock 按钮等，不再影响 entry-card */
     function initMagneticElements(root) {
@@ -1843,6 +1932,7 @@
                 bindEditButtons(temp);
                 initMagneticElements(temp);
                 enhanceTimelineRows(temp);
+                bindTimelineHover(temp);    // ★ 给新加载的行绑定 hover
                 buildLightboxItems(temp);
 
                 if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();

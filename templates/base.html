@@ -131,6 +131,25 @@
             50%  { top: 90%; }
             100% { top: 0%; opacity: 0; }
         }
+        .hud-clock {
+            display: flex;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: #f5f5f5;
+            opacity: 0.85;
+            transition: opacity 0.25s ease;
+            white-space: nowrap;
+        }
+        .hud-clock .hud-date {
+            margin-right: 0.8rem;
+        }
+        .hud-clock.is-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -150,7 +169,16 @@
 
     <header>
         <a href="{{ url_for('index') }}" class="brand">JOURNAL.</a>
-        <div style="display:flex; align-items:center;">
+
+    <!-- 右侧：HUD 时间 + 导航 + Nest -->
+        <div style="display:flex; align-items:center; gap: 2rem;">
+            <!-- 新增：右上角当前时间 HUD -->
+            <div id="hud-clock" class="hud-clock">
+                <span class="hud-date"></span>
+                <span class="hud-time"></span>
+            </div>
+
+        <!-- 原来的导航保持不变 -->
             <a href="{{ url_for('index') }}"
                class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
                 Journal
@@ -163,6 +191,7 @@
                class="nav-link {% if request.endpoint == 'map_view' %}active{% endif %}">
                 Map
             </a>
+
             <div class="nest-badge" style="margin-left: 2rem;">
                 <div class="nest-dot"></div>
                 <span>NEST</span>

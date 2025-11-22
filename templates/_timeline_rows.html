@@ -11,9 +11,11 @@
         aria-label="Memory at {{ node.timestamp.strftime('%Y-%m-%d %H:%M') }}"
     >
         <header class="time-wrapper">
-            <div class="time-label">
-                {{ node.timestamp.strftime('%Y.%m.%d') }}
-                <span>{{ node.timestamp.strftime('%H:%M') }}</span>
+            <div class="time-label"
+                data-date="{{ node.timestamp.strftime('%Y.%m.%d') }}"
+                data-time="{{ node.timestamp.strftime('%H:%M') }}">
+                <span class="date-part">{{ node.timestamp.strftime('%Y.%m.%d') }}</span>
+                <span class="time-part">{{ node.timestamp.strftime('%H:%M') }}</span>
             </div>
         </header>
 
