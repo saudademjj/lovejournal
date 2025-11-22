@@ -90,15 +90,16 @@
     const markersData = {{ markers|tojson|safe }} || [];
 
     const map = new AMap.Map('map', {
-        viewMode: '3D',
+        viewMode: '2D',
         zoom: 4,
         center: [104.06, 30.67], // 大致中国中部
         mapStyle: 'amap://styles/dark',
-        pitch: 45
+        pitch: 0
     });
 
     const markerLayer = new AMap.OverlayGroup();
     map.add(markerLayer);
+    let markerCount = 0;
 
     function colorForKind(kind) {
         if (kind === 'photo') return '#2b00ff';
@@ -107,8 +108,19 @@
     }
 
     const heatData = [];
+    let heatmap = null;
 
-    markersData.forEach(m => {
+    map.plugin(['AMap.HeatMap'], function () {
+        heatmap = new AMap.HeatMap(map, {
+            radius: 25,
+            opacity: [0, 0.8],
+        });
+        if (heatData.length) {
+            heatmap.setDataSet({ data: heatData, max: 6 });
+        }
+    });
+
+    function buildMarker(m) {
         const color = colorForKind(m.kind);
         const pos = new AMap.LngLat(m.lng, m.lat);
 
@@ -151,26 +163,39 @@
             info.open(map, marker.getCenter());
         });
         markerLayer.addOverlay(marker);
+        markerCount += 1;
 
         heatData.push({ lng: m.lng, lat: m.lat, count: 1 });
-    });
-
-    if (markersData.length) {
-        map.setFitView(markerLayer, false, [40, 40, 40, 40]);
+        if (heatmap) {
+            heatmap.setDataSet({ data: heatData, max: 6 });
+        }
     }
 
-    // 回忆热力图
-    if (heatData.length) {
-        map.plugin(['AMap.HeatMap'], function () {
-            const heatmap = new AMap.HeatMap(map, {
-                radius: 25,
-                opacity: [0, 0.8],
-            });
-            heatmap.setDataSet({
-                data: heatData,
-                max: 6
+    const withCoords = markersData.filter(m => m.lat !== null && m.lng !== null);
+    const withoutCoords = markersData.filter(m => (m.lat === null || m.lng === null) && m.label);
+
+    withCoords.forEach(m => buildMarker(m));
+
+    if (withoutCoords.length) {
+        map.plugin(['AMap.Geocoder'], function () {
+            const geocoder = new AMap.Geocoder({ city: '全国' });
+
+            withoutCoords.forEach(m => {
+                geocoder.getLocation(m.label, function (status, result) {
+                    if (status === 'complete' && result.geocodes && result.geocodes.length) {
+                        const loc = result.geocodes[0].location;
+                        m.lng = loc.lng;
+                        m.lat = loc.lat;
+                        buildMarker(m);
+                        map.setFitView(markerLayer, false, [40, 40, 40, 40]);
+                    }
+                });
             });
         });
+    }
+
+    if (markerCount) {
+        map.setFitView(markerLayer, false, [40, 40, 40, 40]);
     }
 </script>
 {% endblock %}
