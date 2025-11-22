@@ -1,7 +1,6 @@
 import os
 import re
 import threading
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 import requests
@@ -210,9 +209,7 @@ def create_app():
             return None
 
     geocode_cache = {}
-    geocode_inflight = set()
     geocode_lock = threading.Lock()
-    geocode_executor = ThreadPoolExecutor(max_workers=4)
 
     def geocode_location(location_text):
         """使用高德 Web API 将地点文本转为坐标，缓存结果减少重复请求"""
@@ -246,26 +243,26 @@ def create_app():
             geocode_cache[location_text] = result
         return result
 
-    def get_cached_geocode(location_text):
-        with geocode_lock:
-            return geocode_cache.get(location_text)
-
-    def schedule_geocode(location_text):
+    def resolve_location(location_text):
+        """
+        统一把地点文本转换为 (lat, lng)：
+        1. 先尝试从文本中直接解析坐标
+        2. 再尝试从缓存里取
+        3. 最后同步调用高德地理编码接口
+        """
         if not location_text:
-            return
+            return None
+
+        coords = parse_coords_from_location(location_text)
+        if coords:
+            return coords
+
         with geocode_lock:
-            if location_text in geocode_cache or location_text in geocode_inflight:
-                return
-            geocode_inflight.add(location_text)
+            if location_text in geocode_cache:
+                return geocode_cache[location_text]
 
-        def task():
-            try:
-                geocode_location(location_text)
-            finally:
-                with geocode_lock:
-                    geocode_inflight.discard(location_text)
-
-        geocode_executor.submit(task)
+        # 缓存里也没有，直接请求一次
+        return geocode_location(location_text)
 
     def build_on_this_day():
         """
@@ -356,14 +353,13 @@ def create_app():
         markers = []
 
         def append_marker(item, kind, label, timestamp, snippet, image=None):
-            coords = parse_coords_from_location(getattr(item, "location", None))
+            coords = resolve_location(getattr(item, "location", None))
             if not coords:
-                coords = get_cached_geocode(label)
-                if not coords:
-                    schedule_geocode(label)
-            lat = lng = None
-            if coords:
-                lat, lng = coords
+                coords = resolve_location(label)
+            if not coords:
+                return
+
+            lat, lng = coords
 
             markers.append(
                 {
