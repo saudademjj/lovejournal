@@ -99,6 +99,7 @@
 
     const markerLayer = new AMap.OverlayGroup();
     map.add(markerLayer);
+    const validMarkers = markersData.filter(m => m.lat !== null && m.lng !== null);
     let markerCount = 0;
 
     function colorForKind(kind) {
@@ -179,34 +180,13 @@
         markerCount += 1;
 
         heatData.push({ lng: m.lng, lat: m.lat, count: 1 });
-        if (markerCount > withCoords.length) {
+        if (markerCount === validMarkers.length) {
             scheduleHeatUpdate();
         }
     }
 
-    const withCoords = markersData.filter(m => m.lat !== null && m.lng !== null);
-    const withoutCoords = markersData.filter(m => (m.lat === null || m.lng === null) && m.label);
-
-    withCoords.forEach(m => buildMarker(m));
+    validMarkers.forEach(m => buildMarker(m));
     applyHeatData();
-
-    if (withoutCoords.length) {
-        map.plugin(['AMap.Geocoder'], function () {
-            const geocoder = new AMap.Geocoder({ city: '全国' });
-
-            withoutCoords.forEach(m => {
-                geocoder.getLocation(m.label, function (status, result) {
-                    if (status === 'complete' && result.geocodes && result.geocodes.length) {
-                        const loc = result.geocodes[0].location;
-                        m.lng = loc.lng;
-                        m.lat = loc.lat;
-                        buildMarker(m);
-                        map.setFitView(markerLayer, false, [40, 40, 40, 40]);
-                    }
-                });
-            });
-        });
-    }
 
     if (markerCount) {
         map.setFitView(markerLayer, false, [40, 40, 40, 40]);
