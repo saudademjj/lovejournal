@@ -87,18 +87,17 @@
 <script src="https://webapi.amap.com/maps?v=2.0&key=7432049c00644e7496cd0151d59380c9&plugin=AMap.HeatMap"></script>
 
 <script>
+    // 【修复1】直接使用 Jinja2 输出 JSON 对象，不要用单引号包裹和 JSON.parse
     const markersData = JSON.parse('{{ markers|tojson|safe }}' || '[]');
 
     const map = new AMap.Map('map', {
         viewMode: '2D',
         zoom: 4,
-        center: [104.06, 30.67], // 大致中国中部
+        center: [104.06, 30.67],
         mapStyle: 'amap://styles/dark',
         pitch: 0
     });
 
-    const markerLayer = new AMap.OverlayGroup();
-    map.add(markerLayer);
     const validMarkers = markersData.filter(m => m.lat !== null && m.lng !== null);
     let markerCount = 0;
 
@@ -108,34 +107,24 @@
         return '#ffffff';
     }
 
+    // 热力图数据
     const heatData = [];
     let heatmap = null;
-    let heatUpdateTimer = null;
-
-    function applyHeatData() {
-        if (heatmap && heatData.length) {
-            heatmap.setDataSet({ data: heatData, max: 6 });
-        }
-    }
-
-    function scheduleHeatUpdate() {
-        if (heatUpdateTimer) return;
-        heatUpdateTimer = setTimeout(() => {
-            heatUpdateTimer = null;
-            applyHeatData();
-        }, 200);
-    }
 
     map.plugin(['AMap.HeatMap'], function () {
         heatmap = new AMap.HeatMap(map, {
             radius: 25,
             opacity: [0, 0.8],
         });
-        applyHeatData();
+        // 初始化加载热力图
+        if(heatData.length > 0) {
+            heatmap.setDataSet({ data: heatData, max: 6 });
+        }
     });
 
     function buildMarker(m) {
         const color = colorForKind(m.kind);
+        // 高德地图坐标顺序是 [Lng, Lat] (经度, 纬度)
         const pos = new AMap.LngLat(m.lng, m.lat);
 
         const marker = new AMap.CircleMarker({
@@ -145,8 +134,10 @@
             strokeWeight: 1,
             fillColor: color,
             fillOpacity: 0.85,
-            zIndex: 10
+            zIndex: 10,
+            cursor: 'pointer'
         });
+
         let html = `
             <div style="min-width:200px;color:#fff;">
                 <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;letter-spacing:0.14em;text-transform:uppercase;color:#aaa;margin-bottom:4px;">
@@ -168,28 +159,34 @@
                 </div>
             `;
         }
-        marker.setTitle(m.label || '');
+
         marker.on('click', () => {
             const info = new AMap.InfoWindow({
                 content: html,
-                offset: new AMap.Pixel(0, -16)
+                offset: new AMap.Pixel(0, -8),
+                anchor: 'bottom-center',
+                isCustom: false
             });
-            info.open(map, marker.getCenter());
+            info.open(map, pos);
         });
-        markerLayer.addOverlay(marker);
-        markerCount += 1;
 
+        // 【修复2】直接添加到地图，不使用 OverlayGroup 以避免兼容性问题
+        marker.setMap(map);
+
+        markerCount += 1;
         heatData.push({ lng: m.lng, lat: m.lat, count: 1 });
-        if (markerCount === validMarkers.length) {
-            scheduleHeatUpdate();
-        }
     }
 
     validMarkers.forEach(m => buildMarker(m));
-    applyHeatData();
 
-    if (markerCount) {
-        map.setFitView(markerLayer, false, [40, 40, 40, 40]);
+    // 更新热力图
+    if (heatmap && heatData.length) {
+        heatmap.setDataSet({ data: heatData, max: 6 });
+    }
+
+    // 【修复3】自动缩放视野以包含所有点
+    if (markerCount > 0) {
+        map.setFitView(null, false, [60, 60, 60, 60]);
     }
 </script>
 {% endblock %}

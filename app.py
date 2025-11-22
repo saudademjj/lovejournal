@@ -182,7 +182,7 @@ def create_app():
             return datetime.now()
 
     coord_number_re = re.compile(r"(-?\d+(?:\.\d+)?)")
-    amap_key = os.getenv("AMAP_WEB_KEY", "7432049c00644e7496cd0151d59380c9")
+    amap_key = os.getenv("AMAP_WEB_KEY", "fd67dbc2f43a792a5a2aa190e3a49d92")
 
     def parse_coords_from_location(location_text):
         """
