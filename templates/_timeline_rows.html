@@ -2,22 +2,21 @@
 {% set base_index = start_index or 0 %}
 
 {% for node in timeline %}
+    {% set date_text = node.timestamp.strftime('%Y.%m.%d') %}
+    {% set time_text = node.timestamp.strftime('%H:%M') %}
+    {% set iso_text = node.timestamp.strftime('%Y-%m-%dT%H:%M') %}
     {% set logical_index = base_index + loop.index %}
     <article
         class="timeline-row {{ 'odd' if logical_index is odd else 'even' }}"
         data-index="{{ logical_index }}"
         data-year="{{ node.timestamp.year }}"
         data-type="{{ node.type }}"
+        data-date="{{ date_text }}"
+        data-time="{{ time_text }}"
+        data-timestamp="{{ iso_text }}"
         aria-label="Memory at {{ node.timestamp.strftime('%Y-%m-%d %H:%M') }}"
     >
-        <header class="time-wrapper">
-            <div class="time-label"
-                data-date="{{ node.timestamp.strftime('%Y.%m.%d') }}"
-                data-time="{{ node.timestamp.strftime('%H:%M') }}">
-                <span class="date-part">{{ node.timestamp.strftime('%Y.%m.%d') }}</span>
-                <span class="time-part">{{ node.timestamp.strftime('%H:%M') }}</span>
-            </div>
-        </header>
+
 
         <div class="axis-cell">
             <button
@@ -38,7 +37,7 @@
                     title="Edit"
                     data-edit-type="{{ node.type }}"
                     data-edit-id="{{ node.item.id }}"
-                    data-edit-timestamp="{{ node.timestamp.strftime('%Y-%m-%dT%H:%M') }}"
+                    data-edit-timestamp="{{ iso_text }}"
                     data-edit-location="{{ (node.item.location or '')|e }}"
                     data-edit-content="{{ node.item.content|e if node.type == 'entry' else '' }}"
                     data-edit-caption="{{ (node.item.caption or '')|e if node.type == 'photo' else '' }}"

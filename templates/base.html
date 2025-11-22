@@ -139,16 +139,24 @@
             letter-spacing: 0.22em;
             text-transform: uppercase;
             color: #f5f5f5;
-            opacity: 0.85;
-            transition: opacity 0.25s ease;
+            opacity: 0;
+            transform: translateY(14px);
+            transition:
+                opacity 0.35s ease,
+                transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
             white-space: nowrap;
+            will-change: opacity, transform;
         }
         .hud-clock .hud-date {
             margin-right: 0.8rem;
         }
-        .hud-clock.is-hidden {
-            opacity: 0;
-            pointer-events: none;
+        .hud-clock--visible {
+            opacity: 0.32;
+            transform: translateY(0);
+        }
+        .hud-clock--highlight {
+            opacity: 1;
+            text-shadow: 0 0 12px rgba(255,255,255,0.22);
         }
     </style>
 </head>
@@ -172,8 +180,10 @@
 
     <!-- 右侧：HUD 时间 + 导航 + Nest -->
         <div style="display:flex; align-items:center; gap: 2rem;">
-            <!-- 新增：右上角当前时间 HUD -->
-            <div id="hud-clock" class="hud-clock"></div>
+            {% if request.endpoint == 'index' %}
+                <!-- 仅主页显示的时间 HUD -->
+                <div id="hud-clock" class="hud-clock" aria-live="polite"></div>
+            {% endif %}
 
         <!-- 原来的导航保持不变 -->
             <a href="{{ url_for('index') }}"
@@ -205,41 +215,6 @@
             pre.classList.add('preloader--hidden');
             setTimeout(() => pre.remove(), 900);
         });
-
-        // ===== 顶部 HUD 时钟基础更新逻辑（仅用于非 index.html 页面）=====
-        (function initBaseClock() {
-            const hudClock = document.getElementById('hud-clock');
-            if (!hudClock) return;
-
-            // 初始化：确保只有两个 span
-            if (hudClock.children.length === 0) {
-                const dateSpan = document.createElement('span');
-                dateSpan.className = 'hud-date';
-                const timeSpan = document.createElement('span');
-                timeSpan.className = 'hud-time';
-                hudClock.appendChild(dateSpan);
-                hudClock.appendChild(timeSpan);
-            }
-
-            function updateBaseClock() {
-                // 检查是否已被 index.html 接管
-                if (hudClock.dataset.controlled === 'true') return;
-
-                const now = new Date();
-                const pad = (n) => String(n).padStart(2, '0');
-                const dateStr = `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())}`;
-                const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-
-                const dateSpan = hudClock.querySelector('.hud-date');
-                const timeSpan = hudClock.querySelector('.hud-time');
-
-                if (dateSpan) dateSpan.textContent = dateStr;
-                if (timeSpan) timeSpan.textContent = timeStr;
-            }
-
-            updateBaseClock();
-            setInterval(updateBaseClock, 1000);
-        })();
     </script>
 </body>
 </html>

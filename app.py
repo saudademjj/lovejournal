@@ -285,17 +285,6 @@ def create_app():
                 return geocode_cache[location_text]
         return geocode_location(location_text)
 
-    def build_on_this_day():
-        today = datetime.now()
-        full = build_timeline()
-        result = []
-        for node in full:
-            ts = node["timestamp"]
-            if ts.month == today.month and ts.day == today.day and ts.year < today.year:
-                result.append(node)
-        result.sort(key=lambda x: x["timestamp"], reverse=True)
-        return result
-
     # ========== Routes ==========
 
     @app.route("/")
@@ -317,12 +306,6 @@ def create_app():
 
         all_tags = build_tag_index()
 
-        on_this_day = None
-        if not search_query and filter_type == "all" and not selected_tag:
-            otd_list = build_on_this_day()
-            if otd_list:
-                on_this_day = otd_list[0]
-
         return render_template(
             "index.html",
             timeline=page_items,
@@ -334,7 +317,6 @@ def create_app():
             page=page,
             has_more=has_more,
             start_index=start,
-            on_this_day=on_this_day,
         )
 
     @app.route("/api/timeline")

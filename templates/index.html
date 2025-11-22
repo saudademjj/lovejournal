@@ -151,79 +151,6 @@
         border-color: rgba(255,255,255,0.3);
     }
 
-    /* “那年今日”模块 */
-    .on-this-day {
-        margin-bottom: 2.2rem;
-        padding: 1.4rem 1.6rem;
-        border-radius: 18px;
-        background: radial-gradient(circle at 0% 0%, rgba(255,255,255,0.09), #050505 60%);
-        box-shadow: 0 24px 60px rgba(0,0,0,0.9);
-        border: 1px solid rgba(255,255,255,0.14);
-        display: grid;
-        grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr);
-        gap: 1.4rem;
-        position: relative;
-        overflow: hidden;
-    }
-    .on-this-day::before {
-        content: '';
-        position: absolute;
-        inset: -20%;
-        background:
-            radial-gradient(circle at 10% 0%, rgba(255,255,255,0.12), transparent 50%),
-            radial-gradient(circle at 100% 120%, rgba(255,255,255,0.1), transparent 60%);
-        mix-blend-mode: soft-light;
-        opacity: 0.7;
-        pointer-events: none;
-    }
-
-    .otd-label {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.7rem;
-        letter-spacing: 0.26em;
-        text-transform: uppercase;
-        color: #cfcfcf;
-    }
-
-    .otd-date {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.8rem;
-        color: #a0a0a0;
-        margin-top: 0.3rem;
-    }
-
-    .otd-body {
-        font-family: 'Inter', sans-serif;
-        font-size: 0.95rem;
-        line-height: 1.8;
-        color: #f3f3f3;
-        white-space: pre-wrap;
-    }
-
-    .otd-meta {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: flex-end;
-        gap: 0.5rem;
-        text-align: right;
-    }
-
-    .otd-year {
-        font-family: 'Space Grotesk', sans-serif;
-        font-size: 2.8rem;
-        font-weight: 700;
-        letter-spacing: 0.12em;
-    }
-
-    .otd-subline {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.7rem;
-        letter-spacing: 0.22em;
-        text-transform: uppercase;
-        color: #b8b8b8;
-    }
-
     /* 时间轴 Grid：>1024px 三列；<=1024px 自动折叠避免“时间重叠” */
     .timeline-grid {
         position: relative;
@@ -374,8 +301,7 @@
         letter-spacing: 0.16em;
         text-transform: uppercase;
         white-space: nowrap;
-        transition: color 0.25s ease, opacity 0.25s ease, text-shadow 0.3s ease;
-        opacity: 1;
+        transition: color 0.25s ease, text-shadow 0.3s ease;
     }
     .time-label span {
         opacity: 0.55;
@@ -384,7 +310,6 @@
     }
     .timeline-row--active .time-label {
         color: #f7f7f7;
-        opacity: 1;
         text-shadow: 0 0 12px rgba(255,255,255,0.4);
     }
     .timeline-row--active .time-label span {
@@ -959,33 +884,6 @@
         {% endif %}
     </div>
 
-    {% if on_this_day %}
-        {% set node = on_this_day %}
-        <section class="on-this-day">
-            <div>
-                <div class="otd-label">ON THIS DAY</div>
-                <div class="otd-date">
-                    {{ node.timestamp.strftime('%Y.%m.%d') }} · {{ node.timestamp.strftime('%H:%M') }}
-                </div>
-                <div class="otd-body">
-                    {% if node.type == 'entry' %}
-                        {{ node.item.content }}
-                    {% elif node.type == 'photo' %}
-                        [Photo] {{ node.item.caption or '' }}
-                    {% elif node.type == 'keydate' %}
-                        {{ node.item.title }}
-                    {% endif %}
-                </div>
-            </div>
-            <div class="otd-meta">
-                <div class="otd-year">{{ node.timestamp.year }}</div>
-                <div class="otd-subline">
-                    A MEMORY ON THIS DAY
-                </div>
-            </div>
-        </section>
-    {% endif %}
-
     {% if years %}
     <nav class="year-nav" aria-label="Jump by year">
         {% for y in years %}
@@ -1055,20 +953,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 
 <script>
-    // ===== 调试代码：诊断重复元素 =====
-    window.addEventListener('DOMContentLoaded', function() {
-        const hudClock = document.getElementById('hud-clock');
-        if (hudClock) {
-            console.log('HUD Clock 初始状态:');
-            console.log('子元素数量:', hudClock.children.length);
-            console.log('HTML内容:', hudClock.innerHTML);
-            console.log('所有子元素:', Array.from(hudClock.children).map(el => ({
-                tag: el.tagName,
-                class: el.className,
-                text: el.textContent
-            })));
-        }
-    });
     const prefersReducedMotion =
         window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1515,7 +1399,6 @@
         initTypewriter(scope);
     }
 /* ===== 顶部 HUD 时钟 + 时间轴高亮联动 ===== */
-/* ===== 顶部 HUD 时钟 + 时间轴高亮联动 ===== */
     const timelineGrid = document.querySelector('.timeline-grid');
     const hudClock = document.getElementById('hud-clock');
 
@@ -1523,46 +1406,61 @@
     let activeRow = null;
     let hudMode = 'now';   // 'now' | 'memory'
 
-    // 确保 HUD 容器存在且初始化为空
-    if (hudClock) {
+    function setHudHighlight(isActive) {
+        if (!hudClock) return;
+        hudClock.classList.toggle('hud-clock--highlight', !!isActive);
+    }
+
+    function revealHudClock() {
+        if (!hudClock) return;
+        if (prefersReducedMotion) {
+            hudClock.classList.add('hud-clock--visible');
+            return;
+        }
+        requestAnimationFrame(() => hudClock.classList.add('hud-clock--visible'));
+    }
+
+    function ensureLabelSpans(container) {
+        if (!container) return null;
+        let dateSpan = container.querySelector('.hud-date');
+        let timeSpan = container.querySelector('.hud-time');
+        const needsReset = !dateSpan || !timeSpan || container.children.length < 2;
+
+        if (needsReset) {
+            container.innerHTML = '';
+            dateSpan = document.createElement('span');
+            dateSpan.className = 'hud-date';
+            timeSpan = document.createElement('span');
+            timeSpan.className = 'hud-time';
+            container.appendChild(dateSpan);
+            container.appendChild(timeSpan);
+        }
+
+        return { dateSpan, timeSpan };
+    }
+
+    function ensureHudSpans() {
+        if (!hudClock) return null;
         hudClock.dataset.controlled = 'true';
-        hudClock.innerHTML = '';  // 强制清空
+        return ensureLabelSpans(hudClock);
+    }
+    ensureHudSpans();
 
-        // 预先创建两个固定的 span 元素，之后只更新内容
-        const dateSpan = document.createElement('span');
-        dateSpan.className = 'hud-date';
-        const timeSpan = document.createElement('span');
-        timeSpan.className = 'hud-time';
-
-        hudClock.appendChild(dateSpan);
-        hudClock.appendChild(timeSpan);
+    function getRowTimestamp(row) {
+        const dateText = row?.dataset?.date || row?.querySelector('.hud-date, .date-part')?.textContent || '';
+        const timeText = row?.dataset?.time || row?.querySelector('.hud-time, .time-part')?.textContent || '';
+        return {
+            dateText: dateText.trim(),
+            timeText: timeText.trim(),
+        };
     }
 
     /** 统一更新 HUD 显示 - 只更新文本，不创建新元素 */
     function renderHud(dateText, timeText) {
-        if (!hudClock) return;
-
-        // 直接获取已存在的两个 span（必定存在）
-        const dateSpan = hudClock.querySelector('.hud-date');
-        const timeSpan = hudClock.querySelector('.hud-time');
-
-        if (!dateSpan || !timeSpan) {
-            console.error('HUD Clock 元素异常，正在重建...');
-            hudClock.innerHTML = '';
-            const newDateSpan = document.createElement('span');
-            newDateSpan.className = 'hud-date';
-            const newTimeSpan = document.createElement('span');
-            newTimeSpan.className = 'hud-time';
-            hudClock.appendChild(newDateSpan);
-            hudClock.appendChild(newTimeSpan);
-            newDateSpan.textContent = dateText || '';
-            newTimeSpan.textContent = timeText || '';
-            return;
-        }
-
-        // 只更新文本内容，不操作 DOM 结构
-        dateSpan.textContent = dateText || '';
-        timeSpan.textContent = timeText || '';
+        const spans = ensureHudSpans();
+        if (!spans) return;
+        spans.dateSpan.textContent = dateText || '';
+        spans.timeSpan.textContent = timeText || '';
     }
 
     /** 获取当前实时时间 */
@@ -1585,6 +1483,8 @@
     function enterNowMode() {
         hudMode = 'now';
         if (!hudClock) return;
+
+        setHudHighlight(false);
 
         // 清除旧定时器
         if (hudTimer) {
@@ -1614,17 +1514,7 @@
             hudTimer = null;
         }
 
-        // 从 time-wrapper 中查找 time-label
-        const timeWrapper = row.querySelector('.time-wrapper');
-        if (!timeWrapper) return;
-
-        const label = timeWrapper.querySelector('.time-label');
-        if (!label) return;
-
-        // 优先使用 data 属性
-        const dateText = label.dataset.date || label.querySelector('.date-part')?.textContent || '';
-        const timeText = label.dataset.time || label.querySelector('.time-part')?.textContent || '';
-
+        const { dateText, timeText } = getRowTimestamp(row);
         renderHud(dateText, timeText);
     }
 
@@ -1642,8 +1532,10 @@
         // 添加新高亮并更新 HUD
         if (row) {
             row.classList.add('timeline-row--active');
+            setHudHighlight(true);
             showHudForRow(row);
         } else {
+            setHudHighlight(false);
             enterNowMode();
         }
     }
@@ -1666,10 +1558,16 @@
                 setActiveRow(null);
                 if (cursorGlow) cursorGlow.classList.remove('cursor-glow--active');
             });
+
+            row.addEventListener('focusin', () => setActiveRow(row));
+            row.addEventListener('focusout', (e) => {
+                if (!row.contains(e.relatedTarget)) setActiveRow(null);
+            });
         });
     }
 
     // ===== 初始化 =====
+    revealHudClock();
     enterNowMode();  // 先进入实时时间模式
     if (timelineGrid) {
         bindTimelineHover(document);
@@ -1879,12 +1777,14 @@
         images.forEach(img => {
             img.dataset.lightboxBound = '1';
             const row = img.closest('.timeline-row');
-            const captionEl = row.querySelector('.photo-caption');
-            const timeEl = row.querySelector('.time-label');
+            const captionEl = row ? row.querySelector('.photo-caption') : null;
+            const { dateText, timeText } = getRowTimestamp(row);
+            const timeLabel = (dateText || timeText) ? `${dateText} ${timeText}`.trim() : '';
+            const fallbackTime = row ? (row.querySelector('.time-label')?.textContent.trim() || '') : '';
             const item = {
                 src: img.getAttribute('src'),
                 caption: captionEl ? captionEl.textContent.trim() : '',
-                time: timeEl ? timeEl.textContent.trim() : ''
+                time: timeLabel || fallbackTime
             };
             const index = lightboxItems.length;
             lightboxItems.push(item);
