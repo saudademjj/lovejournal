@@ -292,56 +292,51 @@ def create_app():
         """地图视图 + 热力图"""
         markers = []
 
-        for e in Entry.query.all():
-            coords = parse_coords_from_location(e.location)
-            if not coords:
-                continue
-            lat, lng = coords
+        def append_marker(item, kind, label, timestamp, snippet, image=None):
+            coords = parse_coords_from_location(getattr(item, "location", None))
+            lat = lng = None
+            if coords:
+                lat, lng = coords
+
             markers.append(
                 {
-                    "id": e.id,
-                    "kind": "entry",
+                    "id": item.id,
+                    "kind": kind,
                     "lat": lat,
                     "lng": lng,
-                    "label": e.location or "",
-                    "timestamp": e.created_at.strftime("%Y-%m-%d %H:%M"),
-                    "snippet": (e.content or "")[:80],
+                    "label": label or "",
+                    "timestamp": timestamp,
+                    "snippet": snippet,
+                    "image": image,
                 }
+            )
+
+        for e in Entry.query.all():
+            append_marker(
+                e,
+                "entry",
+                e.location,
+                e.created_at.strftime("%Y-%m-%d %H:%M"),
+                (e.content or "")[:80],
             )
 
         for k in KeyDate.query.all():
-            coords = parse_coords_from_location(k.location)
-            if not coords:
-                continue
-            lat, lng = coords
-            markers.append(
-                {
-                    "id": k.id,
-                    "kind": "keydate",
-                    "lat": lat,
-                    "lng": lng,
-                    "label": k.location or "",
-                    "timestamp": k.date.strftime("%Y-%m-%d %H:%M"),
-                    "snippet": (k.title or "")[:80],
-                }
+            append_marker(
+                k,
+                "keydate",
+                k.location,
+                k.date.strftime("%Y-%m-%d %H:%M"),
+                (k.title or "")[:80],
             )
 
         for p in Photo.query.all():
-            coords = parse_coords_from_location(p.location)
-            if not coords:
-                continue
-            lat, lng = coords
-            markers.append(
-                {
-                    "id": p.id,
-                    "kind": "photo",
-                    "lat": lat,
-                    "lng": lng,
-                    "label": p.location or "",
-                    "timestamp": p.created_at.strftime("%Y-%m-%d %H:%M"),
-                    "snippet": (p.caption or "")[:80],
-                    "image": url_for("uploaded_file", filename=p.filename),
-                }
+            append_marker(
+                p,
+                "photo",
+                p.location,
+                p.created_at.strftime("%Y-%m-%d %H:%M"),
+                (p.caption or "")[:80],
+                image=url_for("uploaded_file", filename=p.filename),
             )
 
         return render_template("map.html", markers=markers)
