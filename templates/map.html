@@ -21,19 +21,31 @@
     .map-legend {
         position: absolute;
         top: 140px;
-        left: 2.8rem;
+        left: 50%;
+        transform: translateX(-50%);
         z-index: 10;
-        padding: 0.6rem 1rem;
+        padding: 0.65rem 1.2rem;
         border-radius: 999px;
-        background: rgba(5,5,5,0.8);
+        background: rgba(5,5,5,0.82);
         border: 1px solid rgba(255,255,255,0.08);
         font-family: 'JetBrains Mono', monospace;
         font-size: 0.7rem;
         letter-spacing: 0.18em;
         text-transform: uppercase;
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 0.7rem;
+        gap: 1rem;
+        box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+    }
+
+    .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.05);
     }
 
     .map-dot {
@@ -41,9 +53,9 @@
         height: 8px;
         border-radius: 50%;
     }
-    .map-dot.entry { background: #ffffff; }
-    .map-dot.photo { background: var(--neon-blue); }
-    .map-dot.keydate { background: var(--neon-pink); }
+    .map-dot.entry { background: #ffffff; box-shadow: 0 0 0 2px rgba(255,255,255,0.1); }
+    .map-dot.photo { background: var(--neon-blue); box-shadow: 0 0 0 2px rgba(43,0,255,0.16); }
+    .map-dot.keydate { background: var(--neon-pink); box-shadow: 0 0 0 2px rgba(255,0,60,0.18); }
 
     @media (max-width: 768px) {
         main { padding: 120px 1.2rem 60px; }
@@ -56,10 +68,10 @@
     }
 </style>
 
-<div class="map-legend">
-    <span class="map-dot entry"></span> TEXT
-    <span class="map-dot photo"></span> PHOTO
-    <span class="map-dot keydate"></span> DATE
+<div class="map-legend" aria-label="Legend for map markers">
+    <span class="legend-item"><span class="map-dot entry"></span>TEXT</span>
+    <span class="legend-item"><span class="map-dot photo"></span>PHOTO</span>
+    <span class="legend-item"><span class="map-dot keydate"></span>DATE</span>
 </div>
 
 <main aria-label="Map of memories">
@@ -75,7 +87,7 @@
 <script src="https://webapi.amap.com/maps?v=2.0&key=7432049c00644e7496cd0151d59380c9&plugin=AMap.HeatMap"></script>
 
 <script>
-    const markersData = JSON.parse('{{ markers|tojson|safe }}' || '[]');
+    const markersData = {{ markers|tojson|safe }} || [];
 
     const map = new AMap.Map('map', {
         viewMode: '3D',

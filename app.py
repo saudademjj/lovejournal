@@ -186,6 +186,7 @@ def create_app():
         - 支持 '31.23,121.47 Shanghai'
         - 支持 '31.23 121.47'
         - 自动忽略后面的中文或其他文本
+        - 如果用户把「经纬度」写反（高德接口返回 lng,lat），自动调整
         """
         if not location_text:
             return None
@@ -196,6 +197,9 @@ def create_app():
         try:
             lat = float(nums[0])
             lng = float(nums[1])
+            # 如果首个数值不在正常纬度范围，而第二个数值在，则认为用户写反了
+            if abs(lat) > 90 and abs(lat) <= 180 and abs(lng) <= 90:
+                lat, lng = lng, lat
             return lat, lng
         except ValueError:
             return None
