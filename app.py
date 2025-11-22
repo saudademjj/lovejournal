@@ -1,6 +1,9 @@
 import os
 import re
 from datetime import datetime
+from functools import lru_cache
+
+import requests
 
 from flask import (
     Flask,
@@ -179,6 +182,7 @@ def create_app():
             return datetime.now()
 
     coord_number_re = re.compile(r"(-?\d+(?:\.\d+)?)")
+    amap_key = os.getenv("AMAP_WEB_KEY", "7432049c00644e7496cd0151d59380c9")
 
     def parse_coords_from_location(location_text):
         """
@@ -202,6 +206,32 @@ def create_app():
                 lat, lng = lng, lat
             return lat, lng
         except ValueError:
+            return None
+
+    @lru_cache(maxsize=64)
+    def geocode_location(location_text):
+        """使用高德 Web API 将地点文本转为坐标，缓存结果减少重复请求"""
+        if not location_text:
+            return None
+        try:
+            resp = requests.get(
+                "https://restapi.amap.com/v3/geocode/geo",
+                params={"key": amap_key, "address": location_text},
+                timeout=4,
+            )
+            data = resp.json()
+            if data.get("status") != "1":
+                return None
+            geocodes = data.get("geocodes") or []
+            if not geocodes:
+                return None
+            loc = geocodes[0].get("location", "")
+            nums = coord_number_re.findall(loc)
+            if len(nums) < 2:
+                return None
+            lng, lat = float(nums[0]), float(nums[1])
+            return lat, lng
+        except Exception:
             return None
 
     def build_on_this_day():
@@ -294,6 +324,8 @@ def create_app():
 
         def append_marker(item, kind, label, timestamp, snippet, image=None):
             coords = parse_coords_from_location(getattr(item, "location", None))
+            if not coords:
+                coords = geocode_location(label)
             lat = lng = None
             if coords:
                 lat, lng = coords
