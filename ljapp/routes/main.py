@@ -83,6 +83,7 @@ def extract_years(timeline):
 
 
 @main_bp.route('/')
+@login_required
 def index():
     search_query = request.args.get('q', '')
     filter_type = request.args.get('type', 'all')

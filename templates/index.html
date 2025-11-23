@@ -42,48 +42,54 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
-        margin-bottom: 2rem;
+        margin-bottom: 1.25rem;
+        padding: 0;
     }
 
     .timeline-top-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 1.5rem;
+        gap: clamp(1rem, 8vw, 14rem);
+        flex-wrap: wrap;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
     }
 
     .timeline-search {
-        flex: 1;
-        max-width: 360px;
+        flex: 1 1 360px;
+        max-width: 640px;
         position: relative;
     }
 
     .timeline-search-input {
         width: 100%;
-        padding: 0.6rem 0.9rem 0.6rem 2.4rem;
+        padding: 1rem 1rem 0.8rem 3.8rem;
         border-radius: 999px;
         border: 1px solid rgba(255,255,255,0.08);
-        background: rgba(5,5,5,0.8);
+        background: rgba(8,8,8,0.86);
         color: #f5f5f5;
         font-family: 'Inter', sans-serif;
-        font-size: 0.85rem;
+        font-size: 0.95rem;
+        letter-spacing: 0.01em;
         outline: none;
         transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
     }
     .timeline-search-input::placeholder { color: #666; }
     .timeline-search-input:focus {
         border-color: rgba(255,255,255,0.3);
-        background: #090909;
+        background: #0b0b0b;
         box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
     }
     .timeline-search::before {
         content: '⌕';
         position: absolute;
-        left: 0.9rem;
+        left: 1.45rem;
         top: 50%;
         transform: translateY(-50%);
-        font-size: 0.78rem;
-        color: #777;
+        font-size: 0.98rem;
+        color: #b3b3b3;
+        line-height: 1;
         pointer-events: none;
     }
 
@@ -293,6 +299,7 @@
         padding-left: 2rem;
         text-align: left;
     }
+
 
     .time-label {
         font-family: 'JetBrains Mono', monospace;
