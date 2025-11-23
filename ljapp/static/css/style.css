@@ -311,6 +311,11 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr) 60px minmax(0, 1fr);
         column-gap: 0;
+        justify-items: center;
+        justify-content: center;
+        width: 100%;
+        max-width: 1100px;
+        margin: 0 auto;
     }
 
     .timeline-axis {
@@ -426,25 +431,25 @@
     .timeline-row.even .time-wrapper {
         grid-column: 1;
         justify-content: flex-end;
-        padding-right: 2rem;
+        padding-right: 1.5rem;
         text-align: right;
     }
     .timeline-row.even .content-wrapper {
         grid-column: 3;
-        justify-content: flex-start;
-        padding-left: 2rem;
+        justify-content: center;
+        padding-left: 1.5rem;
         text-align: left;
     }
     .timeline-row.odd .content-wrapper {
         grid-column: 1;
-        justify-content: flex-end;
-        padding-right: 2rem;
+        justify-content: center;
+        padding-right: 1.5rem;
         text-align: right;
     }
     .timeline-row.odd .time-wrapper {
         grid-column: 3;
         justify-content: flex-start;
-        padding-left: 2rem;
+        padding-left: 1.5rem;
         text-align: left;
     }
 
@@ -475,7 +480,7 @@
         display: inline-flex;
         flex-direction: column;
         align-items: flex-start;
-        max-width: 32rem;
+        max-width: 34rem;
         width: 100%;
         gap: 0.8rem;
     }
@@ -915,7 +920,30 @@
     .lightbox__nav--prev { left: -32px; }
     .lightbox__nav--next { right: -32px; }
 
-    @media (max-width: 1024px) {
+    @media (max-width: 1024px) and (min-width: 769px) {
+        .timeline-grid {
+            grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+            max-width: 980px;
+        }
+        .timeline-row {
+            grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+            padding: 2.2rem 0;
+        }
+        .timeline-row.even .time-wrapper {
+            padding-right: 1.2rem;
+        }
+        .timeline-row.even .content-wrapper {
+            padding-left: 1.2rem;
+        }
+        .timeline-row.odd .content-wrapper {
+            padding-right: 1.2rem;
+        }
+        .timeline-row.odd .time-wrapper {
+            padding-left: 1.2rem;
+        }
+    }
+
+    @media (max-width: 768px) {
         .year-nav {
             position: static;
             flex-direction: row;
