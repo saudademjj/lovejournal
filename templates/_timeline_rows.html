@@ -31,29 +31,31 @@
         <div class="content-wrapper">
             {# 重点：不再对 entry-card 加 data-magnetic，避免“磁吸逃跑” #}
             <div class="entry-card">
-                <button
-                    type="button"
-                    class="btn-edit"
-                    title="Edit"
-                    data-edit-type="{{ node.type }}"
-                    data-edit-id="{{ node.item.id }}"
-                    data-edit-timestamp="{{ iso_text }}"
-                    data-edit-location="{{ (node.item.location or '')|e }}"
-                    data-edit-content="{{ node.item.content|e if node.type == 'entry' else '' }}"
-                    data-edit-caption="{{ (node.item.caption or '')|e if node.type == 'photo' else '' }}"
-                    data-edit-title="{{ (node.item.title or '')|e if node.type == 'keydate' else '' }}"
-                >
-                    ✎
-                </button>
+                {% if current_user.is_authenticated %}
+                    <button
+                        type="button"
+                        class="btn-edit"
+                        title="Edit"
+                        data-edit-type="{{ node.type }}"
+                        data-edit-id="{{ node.item.id }}"
+                        data-edit-timestamp="{{ iso_text }}"
+                        data-edit-location="{{ (node.item.location or '')|e }}"
+                        data-edit-content="{{ node.item.content|e if node.type == 'entry' else '' }}"
+                        data-edit-caption="{{ (node.item.caption or '')|e if node.type == 'photo' else '' }}"
+                        data-edit-title="{{ (node.item.title or '')|e if node.type == 'keydate' else '' }}"
+                    >
+                        ✎
+                    </button>
 
-                <form
-                    action="/delete/{{ node.type }}/{{ node.item.id }}"
-                    method="post"
-                    onsubmit="return confirm('Delete?')"
-                    aria-label="Archive this memory"
-                >
-                    <button class="btn-delete" type="submit" title="Archive Memory">×</button>
-                </form>
+                    <form
+                        action="/delete/{{ node.type }}/{{ node.item.id }}"
+                        method="post"
+                        onsubmit="return confirm('Delete?')"
+                        aria-label="Archive this memory"
+                    >
+                        <button class="btn-delete" type="submit" title="Archive Memory">×</button>
+                    </form>
+                {% endif %}
 
                 {% if node.type == 'entry' %}
                     {% set text_len = node.item.content|length %}
@@ -61,8 +63,7 @@
                         class="entry-body text-entry"
                         data-typewriter="{{ '1' if text_len <= 80 else '' }}"
                     >
-
-                        {{ node.item.content }}
+                        {{ render_markdown(node.item.content) | safe }}
                     </div>
                     {% if node.item.location %}
                         <div class="entry-location">

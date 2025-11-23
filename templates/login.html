@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    main {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 120px 1.5rem 80px;
+        position: relative;
+        z-index: 2;
+    }
+    .login-panel {
+        width: 100%;
+        max-width: 420px;
+        background: rgba(8, 8, 8, 0.95);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 18px;
+        padding: 2.4rem 2.2rem;
+        box-shadow: 0 28px 70px rgba(0,0,0,0.85);
+        position: relative;
+        overflow: hidden;
+    }
+    .login-panel::before,
+    .login-panel::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: 18px;
+    }
+    .login-panel::before {
+        border: 1px solid rgba(255,255,255,0.04);
+    }
+    .login-panel::after {
+        background: radial-gradient(circle at 20% 15%, rgba(255,255,255,0.08), transparent 45%),
+                    radial-gradient(circle at 85% 80%, rgba(255,0,60,0.08), transparent 40%);
+        opacity: 0.8;
+    }
+    .login-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.25rem;
+        letter-spacing: 0.04em;
+        margin: 0 0 0.35rem;
+        color: #f5f5f5;
+    }
+    .login-desc {
+        margin: 0 0 1.8rem;
+        color: #a0a0a0;
+        font-size: 0.92rem;
+        line-height: 1.6;
+    }
+    .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        margin-bottom: 1.1rem;
+    }
+    label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: #cfcfcf;
+    }
+    input[type="text"],
+    input[type="password"] {
+        width: 100%;
+        padding: 0.75rem 0.9rem;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(3,3,3,0.85);
+        color: #f5f5f5;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+        border-color: rgba(255,255,255,0.28);
+        background: #0b0b0b;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
+    }
+    .error-box {
+        border: 1px solid rgba(255, 0, 60, 0.35);
+        background: rgba(255, 0, 60, 0.07);
+        color: #ff7c9f;
+        border-radius: 10px;
+        padding: 0.75rem 0.9rem;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+    }
+    .login-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 0.6rem;
+    }
+    .btn-primary,
+    .btn-ghost {
+        border-radius: 999px;
+        padding: 0.75rem 1.4rem;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 0.14em;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn-primary {
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(255,255,255,0.04);
+        color: #f5f5f5;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+    }
+    .btn-primary:hover {
+        border-color: rgba(255,255,255,0.35);
+        background: rgba(255,255,255,0.06);
+        transform: translateY(-1px);
+    }
+    .btn-ghost {
+        border: 1px dashed rgba(255,255,255,0.12);
+        background: transparent;
+        color: #cfcfcf;
+    }
+    .btn-ghost:hover {
+        border-color: rgba(255,255,255,0.22);
+        color: #ffffff;
+        transform: translateY(-1px);
+    }
+    @media (max-width: 520px) {
+        main { padding-top: 140px; }
+        .login-panel { padding: 1.6rem; }
+        .login-actions { flex-direction: column; align-items: stretch; }
+        .btn-primary, .btn-ghost { width: 100%; text-align: center; }
+    }
+</style>
+
+<main aria-label="Login">
+    <div class="login-panel">
+        <h1 class="login-title">登录 Love Journal</h1>
+        <p class="login-desc">请输入用户名与密码。</p>
+
+        {% if error %}
+            <div class="error-box">{{ error }}</div>
+        {% endif %}
+
+        <form method="post">
+            <div class="form-field">
+                <label for="username">Username</label>
+                <input id="username" name="username" type="text" autocomplete="username" required>
+            </div>
+            <div class="form-field">
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" required>
+            </div>
+            <div class="login-actions">
+                <button class="btn-primary" type="submit">Login</button>
+                <a class="btn-ghost" href="{{ url_for('index') }}">Back</a>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}
