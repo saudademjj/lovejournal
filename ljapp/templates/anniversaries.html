@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="cursor-glow" id="cursor-glow"></div>
+<canvas id="hearts-canvas" style="position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:995;"></canvas>
+
+<main aria-label="Anniversary collection">
+    <section class="anniv-list">
+        {% for k in dates %}
+            {% set diff, state = get_days_diff(k.date) %}
+            <article
+                class="anniv-card"
+                data-magnetic
+                data-magnetic-strength="0.18"
+            >
+                <div class="anniv-top">
+                    <div class="anniv-date">
+                        <div class="anniv-date-main">
+                            {{ k.date.strftime('%Y') }}·{{ k.date.strftime('%m') }}·{{ k.date.strftime('%d') }}
+                        </div>
+                        <div class="anniv-date-time">
+                            {{ k.date.strftime('%H:%M') }}
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="anniv-days">
+                            {% if state == 'today' %}
+                                0
+                            {% else %}
+                                {{ diff }}
+                            {% endif %}
+                        </div>
+                        <div class="anniv-subline">
+                            {% if state == 'past' %}
+                                DAYS SINCE
+                            {% elif state == 'future' %}
+                                DAYS LEFT
+                            {% else %}
+                                TODAY
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="anniv-meta-block">
+                    <div class="anniv-title">
+                        {{ k.title }}
+                    </div>
+                    <div class="anniv-tagline">
+                        {% if state == 'past' %}
+                            我们已经一起走过了这些天。
+                        {% elif state == 'future' %}
+                            离这一天还有这些期待。
+                        {% else %}
+                            正在发生的此刻。
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
+    </section>
+</main>
+
+<div class="dock" aria-label="Anniversary controls">
+    <div class="dock-inner">
+        <button type="button" onclick="openModal()" class="dock-btn" data-magnetic data-magnetic-strength="0.22">
+            DATE
+        </button>
+        <button type="button" onclick="triggerHearts()" class="dock-btn miss-you-btn" aria-label="Send hearts" data-magnetic data-magnetic-strength="0.3">
+            ❤
+        </button>
+    </div>
+</div>
+
+<div id="modal-backdrop" class="modal-backdrop"></div>
+<dialog id="input-modal" aria-modal="true" aria-labelledby="modal-title">
+    <button class="modal-close" type="button" onclick="closeModal()" aria-label="Close">&times;</button>
+
+    <h3 id="modal-title" class="modal-title">MEMORY</h3>
+
+    <form id="modal-form" method="post" enctype="multipart/form-data">
+        <label style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.18em; color:#6a6a6a;">
+            When
+            <input
+                type="datetime-local"
+                name="custom_date"
+                id="date-input"
+                class="modal-field"
+                style="margin-top:0.4rem; font-size:0.8rem;"
+            >
+        </label>
+
+        <input
+            name="title"
+            placeholder="Title"
+            class="modal-field"
+            required
+            style="margin-top:1rem;"
+        >
+        <input
+            name="location"
+            placeholder="Where (optional)"
+            class="modal-field"
+            style="margin-top:0.4rem;"
+        >
+        <input type="hidden" name="date" id="kd-hidden">
+
+        <button type="submit" class="modal-save-btn">SAVE</button>
+    </form>
+</dialog>
+
+<script>
+window.PAGE_PROPS = {
+    pageId: 'anniversaries',
+    addKeydateUrl: "{{ url_for('main.add_keydate') }}"
+};
+</script>
+<script src="https://unpkg.com/@studio-freight/lenis@1.1.18/bundled/lenis.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+
+{% endblock %}

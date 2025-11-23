@@ -1,0 +1,6 @@
+<article class="timeline-item">
+  <header class="muted">
+    {{ entry.created_at.strftime("%Y-%m-%d %H:%M") }}
+  </header>
+  <p>{{ entry.content | e | replace('\n', '<br>') | safe }}</p>
+</article>

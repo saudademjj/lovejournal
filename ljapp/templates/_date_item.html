@@ -1,0 +1,12 @@
+<li>
+  <strong>{{ d.title }}</strong>
+  <span class="date-badge">{{ d.date.strftime('%Y-%m-%d') }}</span>
+  {% set diff = days_diff(d.date) %}
+  {% if diff > 0 %}
+    <span class="muted">还有 {{ diff }} 天</span>
+  {% elif diff == 0 %}
+    <span class="muted">就是天！🎉</span>
+  {% else %}
+    <span class="muted">已经过去 {{ -diff }} 天</span>
+  {% endif %}
+</li>

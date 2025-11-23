@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="cursor-glow" id="cursor-glow"></div>
+<canvas id="hearts-canvas" style="position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:995;"></canvas>
+
+<main aria-label="Shared timeline">
+    <div class="timeline-controls">
+        <div class="timeline-top-row">
+            <form class="timeline-search" id="timeline-search-form" method="get" action="{{ url_for('main.index') }}">
+                <input
+                    type="text"
+                    name="q"
+                    class="timeline-search-input"
+                    value="{{ search_query or '' }}"
+                    placeholder="Search memories..."
+                >
+                {% if filter_type %}
+                    <input type="hidden" name="type" value="{{ filter_type }}">
+                {% endif %}
+                {% if selected_tag %}
+                    <input type="hidden" name="tag" value="{{ selected_tag }}">
+                {% endif %}
+            </form>
+
+            <div class="timeline-filters" role="tablist" aria-label="Filter by type">
+                {% set ft = (filter_type or 'all') %}
+                <button type="button" class="filter-pill {{ 'is-active' if ft == 'all' }}" data-filter="all">All</button>
+                <button type="button" class="filter-pill {{ 'is-active' if ft == 'entry' }}" data-filter="entry">Text</button>
+                <button type="button" class="filter-pill {{ 'is-active' if ft == 'photo' }}" data-filter="photo">Photo</button>
+                <button type="button" class="filter-pill {{ 'is-active' if ft == 'keydate' }}" data-filter="keydate">Date</button>
+            </div>
+        </div>
+
+        {% if all_tags %}
+            <div class="tag-cloud" aria-label="Filter by tag">
+                {% for t in all_tags %}
+                    <button
+                        type="button"
+                        class="tag-chip {% if selected_tag == t %}tag-chip--active{% endif %}"
+                        data-tag="{{ t }}"
+                    >
+                        #{{ t }}
+                    </button>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if years %}
+    <nav class="year-nav" aria-label="Jump by year">
+        {% for y in years %}
+            <button type="button" class="year-pill" data-year="{{ y }}">{{ y }}</button>
+        {% endfor %}
+    </nav>
+    {% endif %}
+
+    <section class="timeline-grid" aria-live="polite">
+        <div class="timeline-axis" aria-hidden="true"></div>
+
+        {% include "_timeline_rows.html" %}
+    </section>
+
+    <div id="scroll-sentinel" aria-hidden="true"></div>
+</main>
+
+<div class="dock" aria-label="Memory controls">
+    <div class="dock-inner">
+        <button type="button" onclick="openModal('entry')" class="dock-btn" data-magnetic data-magnetic-strength="0.22">TEXT</button>
+        <button type="button" onclick="triggerHearts()" class="dock-btn miss-you-btn" aria-label="Send hearts" data-magnetic data-magnetic-strength="0.3">❤</button>
+        <button type="button" onclick="openModal('photo')" class="dock-btn" data-magnetic data-magnetic-strength="0.22">IMG</button>
+        <button type="button" onclick="openModal('keydate')" class="dock-btn" data-magnetic data-magnetic-strength="0.22">DATE</button>
+    </div>
+</div>
+
+<div id="modal-backdrop" class="modal-backdrop"></div>
+<dialog id="input-modal" aria-modal="true" aria-labelledby="modal-title">
+    <button class="modal-close" type="button" onclick="closeModal()" aria-label="Close">&times;</button>
+
+    <h3 id="modal-title" class="modal-title">RECORD</h3>
+
+    <form id="modal-form" method="post" enctype="multipart/form-data" class="modal-form-content">
+        <label style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.18em; color:#6a6a6a;">
+            When
+            <input
+                type="datetime-local"
+                name="custom_date"
+                id="date-input"
+                class="modal-field"
+                style="margin-top:0.4rem; font-size:0.8rem;"
+            >
+        </label>
+
+        <div id="dynamic-fields"></div>
+
+        <button type="submit" class="modal-save-btn">SAVE</button>
+    </form>
+</dialog>
+
+<!-- 图片灯箱 -->
+<div class="lightbox" id="lightbox" aria-hidden="true">
+    <div class="lightbox__inner">
+        <button class="lightbox__close" type="button" aria-label="Close">×</button>
+        <img class="lightbox__img" id="lightbox-image" alt="">
+        <div class="lightbox__caption">
+            <span id="lightbox-caption"></span>
+            <span id="lightbox-meta"></span>
+        </div>
+        <button class="lightbox__nav lightbox__nav--prev" type="button" aria-label="Previous">‹</button>
+        <button class="lightbox__nav lightbox__nav--next" type="button" aria-label="Next">›</button>
+    </div>
+</div>
+
+<script>
+window.PAGE_PROPS = {
+    pageId: 'index',
+    selectedTag: "{{ selected_tag or '' }}",
+    filterType: "{{ filter_type }}",
+    currentPage: {{ page|default(1)|int }},
+    hasMore: {{ 'true' if has_more else 'false' }},
+    addEntryUrl: "{{ url_for('main.add_entry') }}",
+    addPhotoUrl: "{{ url_for('main.add_photo') }}",
+    addKeydateUrl: "{{ url_for('main.add_keydate') }}"
+};
+</script>
+<script src="https://unpkg.com/@studio-freight/lenis@1.1.18/bundled/lenis.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+
+{% endblock %}

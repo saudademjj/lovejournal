@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="map-legend" aria-label="Legend for map markers">
+    <div class="legend-item" id="filter-entry" onclick="toggleFilter('entry')">
+        <span class="map-dot entry"></span>TEXT
+    </div>
+    <div class="legend-item" id="filter-photo" onclick="toggleFilter('photo')">
+        <span class="map-dot photo"></span>PHOTO
+    </div>
+    <div class="legend-item" id="filter-keydate" onclick="toggleFilter('keydate')">
+        <span class="map-dot keydate"></span>DATE
+    </div>
+</div>
+
+<div class="map-zoom-controls">
+    <button type="button" class="zoom-btn" onclick="zoomIn()" aria-label="Zoom In">+</button>
+    <button type="button" class="zoom-btn" onclick="zoomOut()" aria-label="Zoom Out">−</button>
+</div>
+
+<main aria-label="Map of memories">
+    <div class="map-badge">ATLAS / TRACE</div>
+    <div id="map"></div>
+</main>
+
+
+
+<script>
+window._AMapSecurityConfig = { securityJsCode: '9a6053273e69e199acb91aae8add03c9' };
+</script>
+<script>
+window.PAGE_PROPS = {
+    pageId: 'map',
+    markers: {{ markers|tojson|safe }}
+};
+</script>
+<script src="https://webapi.amap.com/maps?v=2.0&key=7432049c00644e7496cd0151d59380c9&plugin=AMap.Geocoder"></script>
+{% endblock %}
