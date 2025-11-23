@@ -1,0 +1,128 @@
+{# timeline: 当前页的时间轴列表；start_index: 全局起始 index，用于奇偶交错 #}
+{% set base_index = start_index or 0 %}
+
+{% for node in timeline %}
+    {% set date_text = node.timestamp.strftime('%Y.%m.%d') %}
+    {% set time_text = node.timestamp.strftime('%H:%M') %}
+    {% set iso_text = node.timestamp.strftime('%Y-%m-%dT%H:%M') %}
+    {% set logical_index = base_index + loop.index %}
+    <article
+        class="timeline-row {{ 'odd' if logical_index is odd else 'even' }}"
+        data-index="{{ logical_index }}"
+        data-year="{{ node.timestamp.year }}"
+        data-type="{{ node.type }}"
+        data-date="{{ date_text }}"
+        data-time="{{ time_text }}"
+        data-timestamp="{{ iso_text }}"
+        aria-label="Memory at {{ node.timestamp.strftime('%Y-%m-%d %H:%M') }}"
+    >
+
+
+        <div class="axis-cell">
+            <button
+                class="axis-dot"
+                type="button"
+                data-magnetic
+                data-magnetic-strength="0.35"
+                aria-label="Focus memory at {{ node.timestamp.strftime('%Y-%m-%d %H:%M') }}"
+            ></button>
+        </div>
+
+        <div class="content-wrapper">
+            {# 重点：不再对 entry-card 加 data-magnetic，避免“磁吸逃跑” #}
+            <div class="entry-card">
+                {% if current_user.is_authenticated %}
+                    <button
+                        type="button"
+                        class="btn-edit"
+                        title="Edit"
+                        data-edit-type="{{ node.type }}"
+                        data-edit-id="{{ node.item.id }}"
+                        data-edit-timestamp="{{ iso_text }}"
+                        data-edit-location="{{ (node.item.location or '')|e }}"
+                        data-edit-content="{{ node.item.content|e if node.type == 'entry' else '' }}"
+                        data-edit-caption="{{ (node.item.caption or '')|e if node.type == 'photo' else '' }}"
+                        data-edit-title="{{ (node.item.title or '')|e if node.type == 'keydate' else '' }}"
+                    >
+                        ✎
+                    </button>
+
+                    <form
+                        action="/delete/{{ node.type }}/{{ node.item.id }}"
+                        method="post"
+                        onsubmit="return confirm('Delete?')"
+                        aria-label="Archive this memory"
+                    >
+                        <button class="btn-delete" type="submit" title="Archive Memory">×</button>
+                    </form>
+                {% endif %}
+
+                {% if node.type == 'entry' %}
+                    {% set text_len = node.item.content|length %}
+                    <div
+                        class="entry-body text-entry"
+                        data-typewriter="{{ '1' if text_len <= 80 else '' }}"
+                    >
+                        {{ render_markdown(node.item.content) | safe }}
+                    </div>
+                    {% if node.item.location %}
+                        <div class="entry-location">
+                            {{ node.item.location | clean_geo }}
+                        </div>
+                    {% endif %}
+
+                {% elif node.type == 'photo' %}
+                    <div class="photo-frame">
+                        <img
+                            src="{{ url_for('main.uploaded_file', filename=node.item.filename) }}"
+                            loading="lazy"
+                            alt="{{ node.item.caption or 'Memory photo' }}"
+                        >
+                    </div>
+                    {% if node.item.caption %}
+                        <div class="photo-caption">
+                            {{ node.item.caption }}
+                        </div>
+                    {% endif %}
+                    {% if node.item.location %}
+                        <div class="entry-location">
+                            {{ node.item.location | clean_geo }}
+                        </div>
+                    {% endif %}
+
+                {% elif node.type == 'keydate' %}
+                    {% set diff, state = get_days_diff(node.item.date) %}
+                    <div class="keydate-minimal">
+                        <div class="kd-title">
+                            {{ node.item.title }}
+                        </div>
+                        <div
+                            class="kd-number"
+                            style="{{ 'color:var(--neon-pink);' if state == 'today' }}"
+                        >
+                            {% if state == 'today' %}
+                                NOW
+                            {% else %}
+                                {{ diff }}
+                            {% endif %}
+                        </div>
+                        <div class="kd-meta">
+                            {% if state == 'past' %}
+                                days since
+                            {% elif state == 'future' %}
+                                days left
+                            {% else %}
+                                happening now
+                            {% endif %}
+                        </div>
+                        {% if node.item.location %}
+                            <div class="entry-location">
+                                {{ node.item.location | clean_geo }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </article>
+{% endfor %}

@@ -316,14 +316,40 @@
     let markerInstances = [];
     let currentInfoWindow = null;
     let geocoder = null;
-    let districtLayer = null;
     const visitedAdcodes = new Set();
+    const provincePolygons = new Map();
+    const provinceFeatures = new Map(); // adcode -> array of features
+    let geojsonLoaded = false;
+    let geojsonPromise = null;
     const normalizeAdcode = (code) => {
         if (!code) return null;
         const s = String(code).padEnd(6, '0').slice(0, 6);
         // 省级编码：前两位 + 0000
         return s.slice(0, 2) + '0000';
     };
+    function loadGeoJSON() {
+        if (geojsonLoaded) return Promise.resolve(provinceFeatures);
+        if (geojsonPromise) return geojsonPromise;
+        geojsonPromise = fetch('/static/geo/china-provinces.geojson')
+            .then(r => r.json())
+            .then(data => {
+                (data.features || []).forEach(f => {
+                    const props = f.properties || {};
+                    const code = normalizeAdcode(props.adcode || props.parent?.adcode || (props.acroutes || []).slice(-1)[0]);
+                    if (!code) return;
+                    if (!provinceFeatures.has(code)) provinceFeatures.set(code, []);
+                    provinceFeatures.get(code).push(f);
+                });
+                geojsonLoaded = true;
+                console.log('[Map] GeoJSON loaded, provinces:', provinceFeatures.size);
+                return provinceFeatures;
+            })
+            .catch(err => {
+                console.log('[Map] Load geojson failed', err);
+                geojsonLoaded = false;
+            });
+        return geojsonPromise;
+    }
     const fallbackAdcode = (lat, lng) => {
         // 手动兜底的省级范围：青海、上海、浙江、北京、吉林、河南、江苏
         if (lat > 35 && lat < 37 && lng > 100 && lng < 102) return '630000'; // Qinghai (Xining)
@@ -481,17 +507,64 @@
         map.setZoom(map.getZoom() - 1, false, 400);
     };
 
-    function refreshDistrictLayer() {
-        if (!districtLayer) return;
-        const baseFill = 'rgba(255,255,255,0.022)';
-        const visitedFill = 'rgba(255,0,60,0.1)';
-        districtLayer.setStyles({
-            fill: props => visitedAdcodes.has(normalizeAdcode(props.adcode)) ? visitedFill : baseFill,
-            strokeColor: '#2c2c2c',
-            strokeOpacity: 0.72,
-            strokeWeight: 1
+    function drawProvince(adcode) {
+        if (provincePolygons.has(adcode)) return;
+        const feats = provinceFeatures.get(adcode);
+        if (!feats || !feats.length) return;
+        const fill = 'rgba(255,0,60,0.12)';
+        const polys = [];
+        feats.forEach(f => {
+            const geom = f.geometry || {};
+            const type = geom.type;
+            const coords = geom.coordinates || [];
+            if (type === 'MultiPolygon') {
+                coords.forEach(poly => {
+                    const paths = poly.map(ring => ring.map(([lng, lat]) => [lng, lat]));
+                    if (paths.length) {
+                        const p = new AMap.Polygon({
+                            path: paths,
+                            fillColor: '#ff003c',
+                            fillOpacity: 0.42,
+                            strokeColor: '#ff003c',
+                            strokeOpacity: 0.65,
+                            strokeWeight: 1,
+                            zIndex: 5,
+                            bubble: false
+                        });
+                        p.setMap(map);
+                        polys.push(p);
+                    }
+                });
+            } else if (type === 'Polygon') {
+                const paths = coords.map(ring => ring.map(([lng, lat]) => [lng, lat]));
+                if (paths.length) {
+                    const p = new AMap.Polygon({
+                        path: paths,
+                        fillColor: '#ff003c',
+                        fillOpacity: 0.42,
+                        strokeColor: '#ff003c',
+                        strokeOpacity: 0.65,
+                        strokeWeight: 1,
+                        zIndex: 5,
+                        bubble: false
+                    });
+                    p.setMap(map);
+                    polys.push(p);
+                }
+            }
         });
-        console.log('[Map] Visited provinces (layer):', Array.from(visitedAdcodes));
+        if (polys.length) {
+            provincePolygons.set(adcode, polys);
+        }
+    }
+
+    function refreshProvincePolygons() {
+        if (!geojsonLoaded) {
+            loadGeoJSON().then(refreshProvincePolygons);
+            return;
+        }
+        visitedAdcodes.forEach(code => drawProvince(code));
+        console.log('[Map] Provinces drawn:', Array.from(provincePolygons.keys()));
     }
 
     function resolveVisitedAdcodes() {
@@ -505,7 +578,6 @@
         });
 
         Object.values(uniquePoints).forEach(pt => {
-            // 先尝试兜底映射，保证一致性
             const fbEarly = fallbackAdcode(pt.lat, pt.lng);
             if (fbEarly) {
                 visitedAdcodes.add(fbEarly);
@@ -526,31 +598,16 @@
                     console.log('[Map] Fallback adcode', fb, 'for', pt);
                     visitedAdcodes.add(fb);
                 }
-                refreshDistrictLayer();
+                refreshProvincePolygons();
             });
         });
     }
 
     validMarkers.forEach(m => buildMarker(m));
 
-    map.plugin(['AMap.Geocoder', 'AMap.DistrictLayer'], function () {
+    map.plugin(['AMap.Geocoder'], function () {
         geocoder = new AMap.Geocoder({ extensions: 'all' });
-        districtLayer = new AMap.DistrictLayer.Province({
-            adcode: '100000',
-            depth: 1,
-            zIndex: 5,
-            styles: {
-                'default': {
-                    fill: 'rgba(255,255,255,0.038)',
-                    strokeColor: '#2c2c2c',
-                    strokeOpacity: 0.65,
-                    strokeWeight: 1
-                }
-            }
-        });
-        districtLayer.setMap(map);
-        refreshDistrictLayer();
-        resolveVisitedAdcodes();
+        loadGeoJSON().then(resolveVisitedAdcodes);
     });
 
     if (markerInstances.length > 0) {

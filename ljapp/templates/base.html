@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>Love Journal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    </head>
+<body data-page="{{ page_id|default(request.endpoint or '') }}">
+    <svg style="display: none;">
+        <filter id="noiseFilter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/>
+        </filter>
+    </svg>
+    <div class="noise-overlay"></div>
+
+    <div id="preloader" class="preloader">
+        <div class="preloader-inner">
+            <div class="preloader-dot"></div>
+            <div class="preloader-label">JOURNAL.</div>
+        </div>
+    </div>
+
+    <header>
+        <a href="{{ url_for('main.index') }}" class="brand">JOURNAL.</a>
+
+    <!-- 右侧：HUD 时间 + 导航 + Nest -->
+        <div style="display:flex; align-items:center; gap: 2rem;">
+            {% if request.endpoint == 'main.index' %}
+                <!-- 仅主页显示的时间 HUD -->
+                <div id="hud-clock" class="hud-clock" aria-live="polite"></div>
+            {% endif %}
+
+        <!-- 原来的导航保持不变 -->
+            <a href="{{ url_for('main.index') }}"
+               class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}">
+                Journal
+            </a>
+            <a href="{{ url_for('main.anniversaries') }}"
+               class="nav-link {% if request.endpoint == 'main.anniversaries' %}active{% endif %}">
+                Timeline
+            </a>
+            <a href="{{ url_for('main.map_view') }}"
+               class="nav-link {% if request.endpoint == 'main.map_view' %}active{% endif %}">
+                Map
+            </a>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('auth.logout') }}"
+                   class="nav-link">
+                    Logout
+                </a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}"
+                   class="nav-link {% if request.endpoint == 'auth.login' %}active{% endif %}">
+                    Login
+                </a>
+            {% endif %}
+
+            <div class="nest-badge" style="margin-left: 2rem;">
+                <div class="nest-dot"></div>
+                <span>NEST</span>
+            </div>
+        </div>
+    </header>
+
+    {% block content %}{% endblock %}
+
+</body>
+</html>

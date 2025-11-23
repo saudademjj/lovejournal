@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+
+<main aria-label="Login">
+    <div class="login-panel">
+        <h1 class="login-title">登录 Love Journal</h1>
+        <p class="login-desc">请输入用户名与密码。</p>
+
+        {% if error %}
+            <div class="error-box">{{ error }}</div>
+        {% endif %}
+
+        <form method="post">
+            <div class="form-field">
+                <label for="username">Username</label>
+                <input id="username" name="username" type="text" autocomplete="username" required>
+            </div>
+            <div class="form-field">
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" required>
+            </div>
+            <div class="login-actions">
+                <button class="btn-primary" type="submit">Login</button>
+                <a class="btn-ghost" href="{{ url_for('main.index') }}">Back</a>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}
