@@ -1,6 +1,6 @@
 # LoveJournal
 
-<p align="right">中文 | <a href="https://github.com/saudademjj/lovejournal/tree/codex/readme-en">English</a></p>
+<p align="right">中文 | <a href="https://github.com/saudademjj/lovejournal/tree/en/readme">English</a></p>
 
 `LoveJournal` 是一个基于 Flask 的恋爱日记 Web 应用，围绕“记录、回看、纪念、展示”这几个使用场景，提供日记、照片、纪念日、地图和时间轴等功能。相比重构版 `LoveJournal New`，这里保留的是更传统的一体化 Web 架构。
 
