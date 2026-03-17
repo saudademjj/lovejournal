@@ -1,47 +1,35 @@
-# LoveJournal v1 (生活记录 - 初始版)
+# LoveJournal v1 (初始 Flask 开发版本 / Initial Flask Development Version)
 
-[![Flask](https://img.shields.io/badge/Flask-3.0-black?logo=flask)](https://flask.palletsprojects.com/)
-[![Python](https://img.shields.io/badge/Python-3.x-blue?logo=python)](https://www.python.org/)
-[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-ORM-red?logo=sqlalchemy)](https://www.sqlalchemy.org/)
+LoveJournal 的初始原型版本，基于 Flask 构建，完整保留了初期架构设计思路。
 
-LoveJournal v1 是本项目的初始技术版本。系统基于轻量级的 Flask 框架构建，提供了私密的回忆归档功能。本项目作为后续 FastAPI 版本 (Lovejournal-New) 的演进基础。
+The initial prototype of LoveJournal, built with Flask, preserving the original architectural design concepts.
 
-## 核心功能
+## 核心特性 / Core Features
 
-- 回忆归档: 文字记录与图片组合的存储展示。
-- 时间轴展示: 利用 SQLAlchemy 后端查询，按时间顺序呈现历史记录。
-- 资产管理: 实现了基础的图片上传与本地化存储机制。
-- 响应式视图: 基于 Bootstrap 5 构建，适配移动端与桌面端。
+- 线性时间轴 (Linear Timeline):
+    - 基于 Flask-SQLAlchemy 实现的顺序记录检索。 / Sequential record retrieval via Flask-SQLAlchemy.
 
-## 技术栈
+- 基础资产治理 (Basic Asset Management):
+    - 实现本地文件上传与静态资源服务。 / Local file upload and static asset serving.
 
-- 框架: Flask
-- ORM: Flask-SQLAlchemy
-- 渲染: Jinja2, Bootstrap 5
-- 语言: Python 3.x
+## 技术栈 / Technical Stack
 
-## 项目结构
+- Backend: Flask, Python 3.x.
+- Database: SQLite / PostgreSQL (via SQLAlchemy).
+- UI: Bootstrap 5, Jinja2.
+
+## 项目结构 / Project Structure
 
 ```text
-.
-├── ljapp               # 业务逻辑
-├── static              # 静态资源 (CSS, JS)
-├── templates           # HTML 模板
-├── migrations          # 数据库迁移
-├── app.py              # 入口
-└── README.md
+lovejournal/
+├── ljapp/              # 核心 Flask 应用逻辑 / Core Flask app
+├── static/             # 样式与前端脚本 / Assets
+├── templates/          # Jinja2 视图模板 / View templates
+└── app.py              # 入口启动程序 / Entry point
 ```
 
-## 快速启动
+## 后续演进 / Successor
+请参考高性能异步版本 / For the successor version see: [Lovejournal-New](https://github.com/saudademjj/Lovejournal-New)
 
-### 1. 依赖
-`pip install flask flask_sqlalchemy requests werkzeug`
-
-### 2. 运行
-`python app.py`
-
-## 版本说明
-本项目为 **v1 初始版**。后续高性能版本请关注：[Lovejournal-New](https://github.com/saudademjj/Lovejournal-New)。
-
-## 许可证
-MIT License
+## 许可证 / License
+本项目采用 [MIT License](LICENSE) 协议。 / This project is licensed under the MIT License.
