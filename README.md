@@ -1,98 +1,60 @@
-[English](README_en.md) | 简体中文
+# LoveJournal v1 (爱意笔记 - 经典技术栈版)
 
-# LoveJournal
+[![Flask](https://img.shields.io/badge/Flask-3.0-black?logo=flask)](https://flask.palletsprojects.com/)
+[![Python](https://img.shields.io/badge/Python-3.x-blue?logo=python)](https://www.python.org/)
+[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-ORM-red?logo=sqlalchemy)](https://www.sqlalchemy.org/)
 
+LoveJournal v1 是本项目的初始技术迭代版本。系统基于轻量级的 Flask 框架与传统的服务器端渲染 (SSR) 技术构建，旨在提供一个温馨且实用的私密回忆归档平台。本项目作为后续高性能 FastAPI 版本 (Lovejournal-New) 的演进基石，完整保留了初期架构的设计思考。
 
-`LoveJournal` 是一个基于 Flask 的恋爱日记 Web 应用，围绕“记录、回看、纪念、展示”这几个使用场景，提供日记、照片、纪念日、地图和时间轴等功能。相比重构版 `LoveJournal New`，这里保留的是更传统的一体化 Web 架构。
+## 核心设计
 
-## 核心功能
-
-- 日记管理，支持 Markdown 内容和标签提取
-- 照片上传、编辑、删除与展示
-- 纪念日管理，支持倒计时与已过天数
-- 时间轴聚合视图，统一浏览多类型内容
-- 地图页，根据地点或经纬度展示标记
-- 基于 `Flask-Login` 的登录认证
+- 回忆持久化归档: 实现文字记录与多图组合的结构化存储，支持基于时间维度的线性归档。
+- 线性时间轴交互: 利用 SQLAlchemy 进行后端数据编排，为用户提供清晰的历史记忆回溯路径。
+- 自动化媒体资产治理: 内置安全的文件上传重命名与防重存储机制，确保静态资产的鲁棒性。
+- 响应式视图工程: 结合 Bootstrap 5 样式标准，实现对移动端与桌面端的兼容性覆盖。
+- 稳健的安全拦截: 在业务层实现了完善的请求校验、异常捕获与基础的前后端交互加固。
 
 ## 技术栈
 
-- 后端：`Flask`、`Flask-SQLAlchemy`、`Flask-Migrate`、`Flask-Login`
-- 数据库：默认 `SQLite`，可切换到 `PostgreSQL`
-- 前端：`Jinja2` 模板 + 原生 HTML/CSS/JavaScript
-- 地图能力：高德地理编码接口
+- Web 核心框架: Flask
+- 持久层协议: Flask-SQLAlchemy
+- 模板渲染引擎: Jinja2
+- 视觉框架: Bootstrap 5
+- 后端语言标准: Python 3.x
+- 文件安全工具: Werkzeug
 
-## 仓库结构
+## 项目结构
 
 ```text
-lovejournal/
-├── app.py
-├── ljapp/
-│   ├── __init__.py
-│   ├── models.py
-│   ├── utils.py
-│   └── routes/
-│       ├── auth.py
-│       ├── main.py
-│       └── api.py
-├── templates/
-├── static/
-├── migrations/
-├── instance/
-├── README.md
-└── README.en.md
+.
+├── ljapp               # 核心业务逻辑实现
+├── static              # 静态视觉资产 (CSS, JS, Images)
+├── templates           # 基于 Jinja2 的 HTML 视图模板
+├── migrations          # 结构化的数据库迁移记录
+├── app.py              # 服务入口定义
+└── README.md
 ```
 
-## 环境要求
+## 快速启动
 
-- Python 3.8+
-- pip
-
-## 快速开始
-
+### 1. 基础依赖部署
 ```bash
-git clone https://github.com/saudademjj/lovejournal.git
-cd lovejournal
-python -m venv .venv
-source .venv/bin/activate
-pip install flask flask-sqlalchemy flask-migrate flask-login bleach markdown requests
-flask --app app.py db upgrade
-flask --app app.py create-user
-flask --app app.py run
+pip install flask flask_sqlalchemy requests werkzeug
 ```
 
-默认访问地址：`http://127.0.0.1:5000`
+### 2. 数据库与环境初始化
+系统默认为 SQLite 物理存储，可在 `app.py` 中自定义配置。
 
-## 环境变量
-
-| 变量 | 说明 | 默认值 |
-| --- | --- | --- |
-| `FLASK_SECRET_KEY` | Flask 会话密钥 | `your-secret-key` |
-| `DATABASE_URL` | 数据库连接串 | `sqlite:///instance/lovejournal.sqlite` |
-| `AMAP_WEB_KEY` | 高德地理编码 Key | 代码内默认值 |
-
-## 常用 CLI
-
+### 3. 服务端启动
 ```bash
-flask --app app.py create-user
-flask --app app.py import-sqlite /path/to/old.sqlite
+python app.py
 ```
 
-## 页面与接口
-
-- 页面：
-  - `/`
-  - `/anniversaries`
-  - `/map`
-- API：
-  - `GET /api/timeline`
-
-## 生产建议
-
-- 将 `FLASK_SECRET_KEY` 改为高强度随机值
-- 使用 PostgreSQL 并做好备份
-- 通过 Nginx 或 Caddy 提供 HTTPS
-- 将 `instance/` 目录纳入备份策略
+## 版本演进说明
+本仓库为 v1 经典版。如需体验更高并发性能、基于 React 19 的交互设计以及深度地图空间集成功能，请关注本项目的后续版本：[Lovejournal-New](https://github.com/saudademjj/Lovejournal-New)。
 
 ## 许可证
+本项目采用 MIT License 协议。
 
-本仓库采用 MIT License，详见 [LICENSE](./LICENSE)。
+---
+Developed by [saudademjj](https://github.com/saudademjj)
