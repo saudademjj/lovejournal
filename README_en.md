@@ -1,6 +1,6 @@
 # LoveJournal
 
-[中文说明](./README.md)
+English | [简体中文](README.md)
 
 `LoveJournal` is a Flask-based web app for preserving relationship memories through journal entries, photos, anniversaries, map views, and a combined timeline. Compared with `LoveJournal New`, this repository keeps the more traditional all-in-one web architecture.
 
