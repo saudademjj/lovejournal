@@ -1,8 +1,6 @@
-<a id="readme-top"></a>
-
 # LoveJournal
 
-<p align="right">中文 | <a href="#english-version">English</a></p>
+<p align="right">中文 | <a href="https://github.com/saudademjj/lovejournal/tree/codex/readme-en">English</a></p>
 
 `LoveJournal` 是一个基于 Flask 的恋爱日记 Web 应用，围绕“记录、回看、纪念、展示”这几个使用场景，提供日记、照片、纪念日、地图和时间轴等功能。相比重构版 `LoveJournal New`，这里保留的是更传统的一体化 Web 架构。
 
@@ -97,53 +95,3 @@ flask --app app.py import-sqlite /path/to/old.sqlite
 ## 许可证
 
 本仓库采用 MIT License，详见 [LICENSE](./LICENSE)。
-
----
-
-## English Version
-
-<p align="right"><a href="#readme-top">中文</a> | English</p>
-
-`LoveJournal` is a Flask-based web app for preserving relationship memories through journal entries, photos, anniversaries, map views, and a combined timeline. Compared with `LoveJournal New`, this repository keeps the more traditional all-in-one web architecture.
-
-## Core Features
-
-- Journal management with Markdown content and tag extraction
-- Photo upload, editing, deletion, and gallery display
-- Anniversary tracking with countdown and elapsed-day views
-- Aggregated timeline across multiple content types
-- Map view based on place names or coordinates
-- Authentication powered by `Flask-Login`
-
-## Tech Stack
-
-- Backend: `Flask`, `Flask-SQLAlchemy`, `Flask-Migrate`, `Flask-Login`
-- Database: `SQLite` by default, switchable to `PostgreSQL`
-- Frontend: `Jinja2` templates plus plain HTML, CSS, and JavaScript
-- Maps: AMap geocoding APIs
-
-## Quick Start
-
-```bash
-git clone https://github.com/saudademjj/lovejournal.git
-cd lovejournal
-python -m venv .venv
-source .venv/bin/activate
-pip install flask flask-sqlalchemy flask-migrate flask-login bleach markdown requests
-flask --app app.py db upgrade
-flask --app app.py create-user
-flask --app app.py run
-```
-
-Default URL: `http://127.0.0.1:5000`
-
-## Useful CLI Commands
-
-```bash
-flask --app app.py create-user
-flask --app app.py import-sqlite /path/to/old.sqlite
-```
-
-## License
-
-This project is licensed under the MIT License. See [LICENSE](./LICENSE).
