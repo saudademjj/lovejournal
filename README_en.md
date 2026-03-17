@@ -9,42 +9,41 @@
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-ORM-D71F00?style=flat-square&logo=sqlalchemy)
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=flat-square&logo=bootstrap)
 
-LoveJournal v1 is the initial technical iteration of this record system. Built with the classic **Flask** framework and Server-Side Rendering (SSR) approach, it provides a robust and warm archiving platform for individual or couple memories. As the architectural origin for the subsequent high-performance async version (Lovejournal-New), this project preserves the design thinking and engineering practices of the early development stages.
+LoveJournal v1 is the initial technical iteration of this life recording system. Built with the classic **Flask** framework and a Server-Side Rendering (SSR) approach, it provides a stable and warm platform for individual or couple memories. As the architectural origin for the subsequent high-performance async version (Lovejournal-New), this project preserves early engineering practices in data persistence, media asset management, and responsive design.
 
-## Core Design & Functional Practices
+## 🏛️ Core Design & Functional Practices
 
-### 1. Linear Timeline Modeling
-Utilizes **Flask-SQLAlchemy** to orchestrate record entries. The system performs deep sorting of timestamps on the backend, providing users with an intuitive path for historical memory retrieval.
+### 1. Sequential Timeline Modeling
+Utilizes **Flask-SQLAlchemy** for efficient orchestration of record entries.
+- **Layered Logic**: Employs a Model-View separation pattern to ensure clear business logic.
+- **Chronological Retrieval**: Backend query optimizations enable deep sorting by timestamp, providing users with an intuitive path for historical memory retrieval.
 
-### 2. Responsive View Rendering
-- **Jinja2 Templates**: Employs a decoupled template inheritance mechanism to ensure high reusability of the view layer.
-- **Bootstrap 5 Styling**: Combined with a grid system to achieve seamless adaptation across mobile and desktop devices, delivering a consistent sensory experience.
+### 2. Traditional SSR & Responsive Views
+- **Jinja2 Template Engineering**: Leverages template inheritance and modular components to reduce HTML redundancy and ensure high view-layer reusability.
+- **Bootstrap 5 Grid System**: Strictly follows Mobile-First principles, ensuring consistent visual appeal across various mobile devices and desktop browsers.
 
 ### 3. Basic Media Asset Governance
-Implements structured local file upload validation, renaming, and persistence mechanisms, ensuring the security and uniqueness of static resources at the physical storage level.
+- **Upload Pipeline**: Implements a file upload pipeline including safe filename sanitization, type validation, and automated renaming.
+- **Physical Storage**: Tiered storage based on the local filesystem, providing a logical interface for future migrations to object storage (e.g., S3).
 
-## Technical Stack Overview
-
-- **Backend Core**: Flask (Python 3.x).
-- **Persistence Layer**: Flask-SQLAlchemy (Supporting SQLite/PostgreSQL).
-- **Styling Framework**: Bootstrap 5.
-- **File Security**: Werkzeug (For secure filename parsing and upload handling).
-
-## Project Structure
+## 📂 Project Structure
 
 ```text
 lovejournal/
-├── ljapp/              # Core application logic (Views and Blueprints)
-├── static/             # Static assets (CSS, JavaScript, Images)
-├── templates/          # HTML view components based on Jinja2
-├── migrations/         # Database migration history
-├── instance/           # Instance directory containing SQLite DB files
-├── app.py              # Application entry and environment initialization
-└── README.md           # Technical documentation
+├── ljapp/              # Core application logic
+│   ├── models.py       # DB entity definitions (SQLAlchemy)
+│   └── views.py        # Route handlers and business controllers
+├── static/             # Static assets: Global CSS, Vanilla JS, and UI images
+├── templates/          # Jinja2 HTML component pool
+├── migrations/         # Structured DB migration history
+├── instance/           # Local SQLite data files for testing
+├── app.py              # Application bootstrap, plugin init, and entry point
+└── README.md           # Technical specs and development standards
 ```
 
 ## Successor Recommendation
-This project is now in the maintenance phase as **v1 Initial Edition**. For interactive animations based on React 19, async performance via FastAPI, and deep AMap spatial integration, please see: **[Lovejournal-New](https://github.com/saudademjj/Lovejournal-New)**.
+This project is currently in maintenance mode as the **v1 Initial Version**. For a modern interactive experience and peak performance, please see the successor:
+👉 **[Lovejournal-New](https://github.com/saudademjj/Lovejournal-New)** (FastAPI + React 19 + AMap)
 
 ## License
-This project follows the MIT License protocol.
+MIT License
