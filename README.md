@@ -1,22 +1,24 @@
-# LoveJournal（Flask 版）
+# LoveJournal
 
-一个基于 Flask 的恋爱日记 Web 应用，支持日记、照片、纪念日、地图定位与时间轴展示。
+[English README](./README.en.md)
 
-## 功能概览
+`LoveJournal` 是一个基于 Flask 的恋爱日记 Web 应用，围绕“记录、回看、纪念、展示”这几个使用场景，提供日记、照片、纪念日、地图和时间轴等功能。相比重构版 `LoveJournal New`，这里保留的是更传统的一体化 Web 架构。
 
-- 日记管理：支持 Markdown 内容与标签提取
-- 照片管理：支持上传、编辑、删除与图片展示
-- 纪念日管理：支持日期记录、倒计时/已过天数展示
-- 时间轴：按时间统一聚合三类内容，支持检索与分页加载
-- 地图视图：根据地点文本或经纬度展示地图标记
-- 登录认证：基于 `Flask-Login` 的登录态管理
+## 核心功能
+
+- 日记管理，支持 Markdown 内容和标签提取
+- 照片上传、编辑、删除与展示
+- 纪念日管理，支持倒计时与已过天数
+- 时间轴聚合视图，统一浏览多类型内容
+- 地图页，根据地点或经纬度展示标记
+- 基于 `Flask-Login` 的登录认证
 
 ## 技术栈
 
-- 后端：Flask、Flask-SQLAlchemy、Flask-Migrate、Flask-Login
-- 数据库：SQLite（默认）/ PostgreSQL（通过 `DATABASE_URL` 切换）
-- 前端：Jinja2 模板 + 原生 HTML/CSS/JavaScript
-- 地图：高德地理编码接口
+- 后端：`Flask`、`Flask-SQLAlchemy`、`Flask-Migrate`、`Flask-Login`
+- 数据库：默认 `SQLite`，可切换到 `PostgreSQL`
+- 前端：`Jinja2` 模板 + 原生 HTML/CSS/JavaScript
+- 地图能力：高德地理编码接口
 
 ## 仓库结构
 
@@ -35,7 +37,8 @@ lovejournal/
 ├── static/
 ├── migrations/
 ├── instance/
-└── README.md
+├── README.md
+└── README.en.md
 ```
 
 ## 环境要求
@@ -45,41 +48,18 @@ lovejournal/
 
 ## 快速开始
 
-### 1. 克隆仓库
-
 ```bash
 git clone https://github.com/saudademjj/lovejournal.git
 cd lovejournal
-```
-
-### 2. 创建虚拟环境并安装依赖
-
-```bash
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install flask flask-sqlalchemy flask-migrate flask-login bleach markdown requests
-```
-
-### 3. 初始化数据库
-
-```bash
 flask --app app.py db upgrade
-```
-
-### 4. 创建登录用户
-
-```bash
 flask --app app.py create-user
-```
-
-### 5. 启动应用
-
-```bash
 flask --app app.py run
-# 或 python app.py
 ```
 
-默认访问：`http://127.0.0.1:5000`
+默认访问地址：`http://127.0.0.1:5000`
 
 ## 环境变量
 
@@ -89,43 +69,29 @@ flask --app app.py run
 | `DATABASE_URL` | 数据库连接串 | `sqlite:///instance/lovejournal.sqlite` |
 | `AMAP_WEB_KEY` | 高德地理编码 Key | 代码内默认值 |
 
-## 常用 CLI 命令
+## 常用 CLI
 
 ```bash
-# 创建或更新用户
 flask --app app.py create-user
-
-# 从旧 SQLite 数据导入当前数据库
 flask --app app.py import-sqlite /path/to/old.sqlite
 ```
 
-## 主要接口（需要登录）
+## 页面与接口
 
-- 页面路由：
-  - `/` 时间轴主页
-  - `/anniversaries` 纪念日页
-  - `/map` 地图页
-- API 路由：
-  - `GET /api/timeline` 返回时间轴分页 HTML 片段
-
-## 常见问题
-
-1. 上传图片失败
-- 检查文件格式是否在允许列表（png/jpg/jpeg/gif/webp），并确认文件大小不超过 16MB。
-
-2. 地图无法定位
-- 检查 `AMAP_WEB_KEY` 是否有效，网络是否可访问高德地理编码接口。
-
-3. 无法登录
-- 确认已执行 `create-user` 创建账号。
+- 页面：
+  - `/`
+  - `/anniversaries`
+  - `/map`
+- API：
+  - `GET /api/timeline`
 
 ## 生产建议
 
 - 将 `FLASK_SECRET_KEY` 改为高强度随机值
-- 使用 PostgreSQL 并启用备份
-- 通过反向代理（Nginx/Caddy）提供 HTTPS
-- 把 `instance/` 目录加入备份策略（包含数据库与上传文件）
+- 使用 PostgreSQL 并做好备份
+- 通过 Nginx 或 Caddy 提供 HTTPS
+- 将 `instance/` 目录纳入备份策略
 
 ## 许可证
 
-当前仓库未显式提供 License 文件。
+本仓库采用 MIT License，详见 [LICENSE](./LICENSE)。
